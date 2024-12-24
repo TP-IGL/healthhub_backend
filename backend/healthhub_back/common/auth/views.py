@@ -6,7 +6,10 @@ from .serializers import LoginSerializer, ChangePasswordSerializer
 from .service import login_user, change_user_password
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
-
+from rest_framework import status, permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 
 # Handles user login and returns an authentication token.
 class LoginView(generics.GenericAPIView):
@@ -19,6 +22,23 @@ class LoginView(generics.GenericAPIView):
         token = login_user(serializer.validated_data['username'], serializer.validated_data['password'])
         return Response({'token': token}, status=status.HTTP_200_OK)
 
+class LogoutView(APIView):
+    """
+    Handles user logout by deleting the authentication token.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # Delete the user's token to log them out
+            request.user.auth_token.delete()
+            return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
+        except (AttributeError, Token.DoesNotExist):
+            return Response({'detail': 'Token not found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Optionally, handle GET requests if Swagger uses GET for logout
+    def get(self, request):
+        return self.post(request)
 
 # Allows authenticated users to change their password
 class ChangePasswordView(generics.UpdateAPIView):

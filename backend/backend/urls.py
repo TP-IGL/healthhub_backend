@@ -14,7 +14,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-
+from rest_framework.authentication import TokenAuthentication
+from drf_yasg.utils import swagger_auto_schema
 from django.contrib import admin
 from django.urls import path ,include
 from rest_framework import permissions
@@ -35,7 +36,9 @@ schema_view = get_schema_view(
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
+    authentication_classes=(TokenAuthentication,), 
 )
+
 
 
 # Available URLs

@@ -2,15 +2,19 @@
 
 from rest_framework import generics, permissions
 from rest_framework.response import Response
-from .admin_serializers import AdminUserCreateSerializer, AdminUserSerializer
+
+from healthhub_back.models import CentreHospitalier
+from .admin_serializers import AdminUserCreateSerializer, AdminUserSerializer, CentreHospitalierSerializer
 from .admin_service import create_user_account, list_all_users, get_user_by_id
 from rest_framework.exceptions import ValidationError
 
-# Custom permission to allow only admin users
+# restrict access to admin users.
 class IsAdminUserCustom(permissions.BasePermission):
     def has_permission(self, request, view):
+        print(request.user)
         return request.user and request.user.is_authenticated and request.user.role == 'admin'
 
+# Allows admin users to create new users.
 class AdminUserCreateView(generics.CreateAPIView):
     serializer_class = AdminUserCreateSerializer
     permission_classes = [IsAdminUserCustom]
@@ -34,3 +38,15 @@ class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         user_id = self.kwargs['user_id']
         return get_user_by_id(user_id)
+    
+
+class CentreHospitalierCreateView(generics.CreateAPIView):
+    serializer_class = CentreHospitalierSerializer
+    queryset = CentreHospitalier.objects.all()
+    permission_classes = [IsAdminUserCustom]
+
+# Allows listing all CentreHospitalier entries
+class CentreHospitalierListView(generics.ListAPIView):
+    serializer_class = CentreHospitalierSerializer
+    queryset = CentreHospitalier.objects.all()
+    permission_classes = [IsAdminUserCustom]

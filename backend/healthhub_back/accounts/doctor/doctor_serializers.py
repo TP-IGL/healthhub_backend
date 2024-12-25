@@ -144,37 +144,32 @@ class ConsultationSummarySerializer(serializers.ModelSerializer):
     def get_patient(self, obj):
         patient = obj.dossier.patient
         return {
-            'patientID': patient.patientID,
-            'NSS': patient.NSS,
-            'nom': patient.nom,
-            'prenom': patient.prenom,
-            'dateNaissance': patient.dateNaissance,
-            'adresse': patient.adresse,
-            'telephone': patient.telephone,
-            'email': patient.email,
-            'mutuelle': patient.mutuelle,
-            'contactUrgence': patient.contactUrgence,
-            'createdAt': patient.createdAt,
-        }
+        'patientID': str(patient.user.id),  # Now using user.id as patientID
+        'NSS': patient.NSS,
+        'nom': patient.nom,
+        'prenom': patient.prenom,
+        'dateNaissance': patient.dateNaissance,
+        'adresse': patient.adresse,
+        'telephone': patient.telephone,
+        'email': patient.user.email,
+        'mutuelle': patient.mutuelle,
+        'contactUrgence': patient.contactUrgence,
+        'createdAt': patient.createdAt,
+    }
 
+
+class UserBasicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name']
 
 class PatientSerializer(serializers.ModelSerializer):
+    user = UserBasicSerializer(read_only=True)
+
     class Meta:
         model = Patient
-        fields = [
-            'patientID',
-            'NSS',
-            'nom',
-            'prenom',
-            'dateNaissance',
-            'adresse',
-            'telephone',
-            'email',
-            'mutuelle',
-            'contactUrgence',
-            'createdAt'
-        ]
-
+        fields = ['user', 'NSS', 'nom', 'prenom', 'dateNaissance', 'adresse', 
+                 'telephone', 'mutuelle', 'contactUrgence', 'createdAt']
 
 class DossierMedicalSerializer(serializers.ModelSerializer):
     patient = PatientSerializer(read_only=True)

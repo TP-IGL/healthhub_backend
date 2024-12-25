@@ -1,7 +1,7 @@
 # accounts/admin_management/urls.py
 
 from django.urls import path
-from .admin_view import AdminUserCreateView, AdminUserListView, AdminUserDetailView, CentreHospitalierCreateView, CentreHospitalierListView
+from .admin_view import AdminUserCreateView, AdminUserListView, AdminUserDetailView, CentreHospitalierCreateView, CentreHospitalierListView, PatientCreateView
 
 urlpatterns = [
     path('users/', AdminUserListView.as_view(), name='admin_user_list'),
@@ -10,4 +10,5 @@ urlpatterns = [
     # CentreHospitalier endpoints
     path('centre-hospitalier/create/', CentreHospitalierCreateView.as_view(), name='centre-hospitalier-create'),
     path('centre-hospitalier/', CentreHospitalierListView.as_view(), name='centre-hospitalier-list'),
+    path('patients/create/', PatientCreateView.as_view(), name='patient-create'),
 ]

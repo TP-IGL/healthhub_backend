@@ -22,6 +22,7 @@ class User(AbstractUser):
         ('laborantin', 'Laborantin'),
         ('radiologue', 'Radiologue'),
         ('admin', 'Administrateur'),
+        ('patient', 'Patient'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -136,19 +137,17 @@ class Radiologue(models.Model):
 
 # Patient Model
 class Patient(models.Model):
-    patientID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     NSS = models.BigIntegerField(unique=True)
     nom = models.CharField(max_length=255)
     prenom = models.CharField(max_length=255)
     dateNaissance = models.DateField()
     adresse = models.CharField(max_length=255)
     telephone = models.CharField(max_length=20)
-    email = models.EmailField(unique=True)
     mutuelle = models.CharField(max_length=255)
     contactUrgence = models.CharField(max_length=255)
     medecin = models.ForeignKey(Medecin, on_delete=models.SET_NULL, null=True)
     createdAt = models.DateField(auto_now_add=True)
-    password = models.CharField(max_length=128)
     centreHospitalier = models.ForeignKey(CentreHospitalier, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -160,11 +159,10 @@ class DossierMedical(models.Model):
     patient = models.OneToOneField(Patient, on_delete=models.CASCADE)
     createdAt = models.DateField(auto_now_add=True)
     active = models.BooleanField(default=True)
-    qrCode = models.CharField(max_length=255, unique=True)
+    qrCode = models.CharField(max_length=10000)
 
     def __str__(self):
         return f"Dossier de {self.patient}"
-
 # Consultation Model
 class Consultation(models.Model):
     STATUS_CHOICES = [

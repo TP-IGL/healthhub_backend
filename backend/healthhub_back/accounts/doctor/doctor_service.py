@@ -15,24 +15,19 @@ from django.db import transaction
 def search_patient(query):
     """
     Searches for a patient by NSS or QR code.
-
-    Parameters:
-    - query (str): NSS (numeric string) or QR code.
-
-    Returns:
-    - Patient instance.
-
-    Raises:
-    - ValidationError if patient is not found.
     """
     try:
-        # Attempt to interpret query as NSS (assuming NSS is an integer)
+        # Attempt to interpret query as NSS
         nss = int(query)
         patient = get_object_or_404(Patient, NSS=nss)
     except ValueError:
-        # If not integer, treat as QR code
-        dossier = get_object_or_404(DossierMedical, qrCode=query)
-        patient = dossier.patient
+        try:
+            # Try to find by User UUID
+            patient = get_object_or_404(Patient, user__id=query)
+        except ValidationError:
+            # If not UUID, treat as QR code
+            dossier = get_object_or_404(DossierMedical, qrCode=query)
+            patient = dossier.patient
     return patient
 
 

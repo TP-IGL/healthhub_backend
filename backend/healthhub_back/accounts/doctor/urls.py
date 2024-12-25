@@ -1,5 +1,6 @@
 from django.urls import path
 from .doctor_view import (
+    DoctorPatientsView,
     SearchAndRetrieveDossierView,
     CreateConsultationView,
     ConsultationListView,
@@ -16,4 +17,5 @@ urlpatterns = [
     path('consultations/create/', CreateConsultationView.as_view(), name='create_consultation'),
     path('consultations/<uuid:consultation_id>/', ConsultationDetailView.as_view(), name='consultation_detail'),
     path('consultations/<uuid:consultation_id>/summary/', ConsultationSummaryView.as_view(), name='consultation_summary'),
+    path('patients/', DoctorPatientsView.as_view(), name='doctor-patients'),
 ]

@@ -88,11 +88,7 @@ DATABASES = {
         'PASSWORD': config('DATABASE_PASSWORD'),
         'HOST': config('DATABASE_HOST'),
         'PORT': config('DATABASE_PORT', default='3306'),
-        'TEST': {
-            'NAME': config('DATABASE_NAME'),  # Use the same database
-            'MIRROR': None,  # Prevents creation of a separate test DB
-        },
-    }
+    } ,
 }
 
 
@@ -159,15 +155,15 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 SWAGGER_SETTINGS = {
-    'USE_SESSION_AUTH': False,  # Disable session-based auth if you're using token-based auth
+    'USE_SESSION_AUTH': False,  
     'SECURITY_DEFINITIONS': {
         'Token': {
             'type': 'apiKey',
-            'name': 'Authorization',  # This header will be used for tokens
+            'name': 'Authorization',
             'in': 'header',
         },
     },
 }
 
 
-LOGIN_URL = '/auth/login/'  # Set the login URL for Django
+LOGIN_URL = '/auth/login/'  

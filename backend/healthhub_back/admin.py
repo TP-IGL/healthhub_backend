@@ -17,7 +17,7 @@ from .models import (
     Medicament,
     OrdonnanceMedicament,
     ActiviteInfermier,
-    NurseMedication,
+    # NurseMedication,
     ResultatLabo,
     HealthMetrics,
     Examen,
@@ -52,7 +52,7 @@ admin.site.register(Ordonnance)
 admin.site.register(Medicament)
 admin.site.register(OrdonnanceMedicament)
 admin.site.register(ActiviteInfermier)
-admin.site.register(NurseMedication)
+# admin.site.register(NurseMedication)
 admin.site.register(ResultatLabo)
 admin.site.register(HealthMetrics)
 admin.site.register(Examen)

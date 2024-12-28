@@ -252,10 +252,12 @@ class ActiviteInfermier(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    dossier = models.ForeignKey(DossierMedical, on_delete=models.CASCADE)
+    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
     infermier = models.ForeignKey(Infermier, on_delete=models.CASCADE)
     typeActivite = models.CharField(max_length=50, choices=TYPE_ACTIVITE_CHOICES)
-    details = models.TextField()
+    doctors_details = models.TextField()
+    nurse_observations = models.TextField()
+    # details = models.TextField()
     createdAt = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
@@ -263,30 +265,30 @@ class ActiviteInfermier(models.Model):
         return f"Activité {self.typeActivite} pour {self.infermier}"
 
 # NurseMedication Model
-class NurseMedication(models.Model):
-    STATUS_CHOICES = [
-        ('planifie', 'Planifiée'),
-        ('administre', 'Administrée'),
-        ('reporte', 'Reportée'),
-        ('annule', 'Annulée'),
-    ]
+# class NurseMedication(models.Model):
+#     STATUS_CHOICES = [
+#         ('planifie', 'Planifiée'),
+#         ('administre', 'Administrée'),
+#         ('reporte', 'Reportée'),
+#         ('annule', 'Annulée'),
+#     ]
 
-    DOSAGE_CHOICES = [
-        ('faible', 'Faible'),
-        ('moyen', 'Moyen'),
-        ('fort', 'Fort'),
-    ]
+#     DOSAGE_CHOICES = [
+#         ('faible', 'Faible'),
+#         ('moyen', 'Moyen'),
+#         ('fort', 'Fort'),
+#     ]
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    nurseActivite = models.ForeignKey(ActiviteInfermier, on_delete=models.CASCADE)
-    ordonnance = models.ForeignKey(Ordonnance, on_delete=models.CASCADE)
-    administeredAt = models.DateTimeField(null=True, blank=True)
-    dosage = models.CharField(max_length=10, choices=DOSAGE_CHOICES)
-    notes = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     nurseActivite = models.ForeignKey(ActiviteInfermier, on_delete=models.CASCADE)
+#     ordonnance = models.ForeignKey(Ordonnance, on_delete=models.CASCADE)
+#     administeredAt = models.DateTimeField(null=True, blank=True)
+#     # dosage = models.CharField(max_length=10, choices=DOSAGE_CHOICES)
+#     notes = models.TextField(blank=True, null=True)
+#     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
-    def __str__(self):
-        return f"Médicament {self.ordonnance} administré par {self.nurseActivite.infermier}"
+#     def __str__(self):
+#         return f"Médicament {self.ordonnance} administré par {self.nurseActivite.infermier}"
 
 
 # ResultatLabo Model

@@ -1,4 +1,71 @@
-.env
-__pycache__/
+# Byte-compiled files
 *.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.swp
+*.swo
+
+# Environment variables and settings
+.env
+*.env
+
+# IDE-specific files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+*.log
+logs/
+
+# Virtual environment
+env/
 venv/
+ENV/
+VENV/
+
+# Migrations
+**/migrations/*
+!**/migrations/__init__.py
+
+# Media and static files
+media/
+staticfiles/
+static/
+
+# Database
+*.sqlite3
+*.db
+
+# Cache
+*.cache
+*.mo
+*.pot
+*.pid
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Test artifacts
+nosetests.xml
+tests.xml
+*.test
+
+# Python packaging
+*.egg
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+*.whl
+
+# MacOS
+.DS_Store
+
+# Linux
+*~

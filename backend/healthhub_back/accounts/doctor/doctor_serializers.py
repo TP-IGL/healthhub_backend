@@ -59,7 +59,7 @@ class ExamenSerializer(serializers.ModelSerializer):
         fields = [
             'examenID',
             'type',
-            'notes',
+            'doctor_details',
             'etat',
             'priorite',
             'createdAt'

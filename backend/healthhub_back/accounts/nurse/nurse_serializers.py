@@ -1,19 +1,14 @@
 from rest_framework import serializers
 from healthhub_back.models import (
     Patient,
-    DossierMedical,
     Consultation,
     Ordonnance,
     OrdonnanceMedicament,
     Medicament,
     Examen,
-    ResultatLabo,
-    ResultatRadio,
-    HealthMetrics,
     ActiviteInfermier,
 )
 
-from django_filters import rest_framework as filters
 
 class PatientSummarySerializer(serializers.ModelSerializer):
     """
@@ -61,22 +56,8 @@ class NurseOrdonnanceSerializer(serializers.ModelSerializer):
         ]
 
 
-class NurseExamenSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Examen
-        fields = [
-            'examenID',
-            'type',
-            'notes',
-            'etat',
-            'priorite',
-            'createdAt'
-        ]
-
-
-class NurseConsultationSerializer(serializers.ModelSerializer):
+class NurseActivitySerializer(serializers.ModelSerializer):
     ordonnance = NurseOrdonnanceSerializer(read_only=True)
-    complementary_exams = NurseExamenSerializer(many=True, read_only=True, source='examen_set')
     # Include results and health metrics if needed
     # For simplicity, omitted here
 
@@ -90,7 +71,6 @@ class NurseConsultationSerializer(serializers.ModelSerializer):
             'resume',
             'status',
             'ordonnance',
-            'complementary_exams'
         ]
 
     def get_patient(self, obj):
@@ -127,10 +107,10 @@ class PatientNurseSerializer(serializers.ModelSerializer):
         model = Patient
         fields = ["nom", "prenom", "NSS"]
 
-class NurseConsultationDetailSerializer(serializers.Serializer):
+class NurseActivityDetailSerializer(serializers.Serializer):
     patient = PatientNurseSerializer()  # Patient details
     activities = ActivitySerializer(many=True)  # Activities related to the patient
-    consultation = NurseConsultationSerializer()  # Related consultation
+    consultation = NurseActivitySerializer()  # Related consultation
 
 
 

@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from healthhub_back.models import Consultation, ActiviteInfermier
-from .nurse_serializers import  ValidateActiviteSerializer, NurseConsultationDetailSerializer
+from .nurse_serializers import  ValidateActiviteSerializer, NurseActivityDetailSerializer ,ActivitySerializer
 from rest_framework.views import APIView
 
 from django_filters import rest_framework as filters
@@ -40,7 +40,7 @@ class NurseActiviteListView(generics.ListAPIView):
     with filtering, searching, and pagination.
     """
     permission_classes = [permissions.IsAuthenticated, IsInfermier]
-    serializer_class = NurseConsultationDetailSerializer
+    serializer_class = NurseActivityDetailSerializer
 
     filter_backends = [filters.DjangoFilterBackend, SearchFilter]
     filterset_class = ActiviteFilter
@@ -82,8 +82,8 @@ class NurseActiviteListView(generics.ListAPIView):
 
         if not queryset.exists():
             return Response(
-                {"message": "No activities found for this nurse using the search filters."},
-                status=status.HTTP_200_OK
+                {"message": "No activities found for this nurse using these search filters."},
+                status=status.HTTP_404_NOT_FOUND
             )
 
         # Serialize data
@@ -93,7 +93,7 @@ class NurseActiviteListView(generics.ListAPIView):
             consultation = activity.consultation
             patient = consultation.dossier.patient
 
-            serialized_data = NurseConsultationDetailSerializer({
+            serialized_data = NurseActivityDetailSerializer({
                 "patient": patient,
                 "activities": [activity],  # Here we include the current activity
                 "consultation": consultation,
@@ -161,7 +161,7 @@ class HistoriqueActivitesView(generics.ListAPIView):
     Allows the nurse to view all activities they have completed.
     """
     permission_classes = [permissions.IsAuthenticated, IsInfermier]
-    serializer_class = ValidateActiviteSerializer
+    serializer_class = ActivitySerializer
 
     def get_queryset(self):
         # Get nurse's activities
@@ -179,7 +179,7 @@ class HistoriqueActivitesView(generics.ListAPIView):
         if not queryset.exists():
             return Response(
                 {"message": "No activities done found for this nurse."},
-                status=status.HTTP_200_OK
+                status=status.HTTP_404_NOT_FOUND
             )
 
         # Prepare data for serialization
@@ -191,7 +191,7 @@ class HistoriqueActivitesView(generics.ListAPIView):
                 consultation = activity.consultation
                 patient = consultation.dossier.patient
 
-                serialized_data = NurseConsultationDetailSerializer({
+                serialized_data = NurseActivityDetailSerializer({
                     "patient": patient,
                     "activities": [activity],  # Here we include the current activity
                     "consultation": consultation,
@@ -215,7 +215,9 @@ class ActiviteDetailView(generics.RetrieveAPIView):
         infermier = self.request.user.infermier
         return ActiviteInfermier.objects.filter(
             infermier=infermier
-        )
+        ).select_related(
+            'consultation__dossier__patient'
+        ).distinct()
 
     def get_object(self):
         activiteinfermier_id = self.kwargs.get('activiteinfermier_id')

@@ -141,13 +141,13 @@ class Patient(models.Model):
     NSS = models.BigIntegerField(unique=True)
     nom = models.CharField(max_length=255)
     prenom = models.CharField(max_length=255)
-    dateNaissance = models.DateField()
+    dateNaissance = models.DateTimeField()
     adresse = models.CharField(max_length=255)
     telephone = models.CharField(max_length=20)
     mutuelle = models.CharField(max_length=255)
     contactUrgence = models.CharField(max_length=255)
     medecin = models.ForeignKey(Medecin, on_delete=models.SET_NULL, null=True)
-    createdAt = models.DateField(auto_now_add=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
     centreHospitalier = models.ForeignKey(CentreHospitalier, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -157,7 +157,7 @@ class Patient(models.Model):
 class DossierMedical(models.Model):
     dossierID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.OneToOneField(Patient, on_delete=models.CASCADE)
-    createdAt = models.DateField(auto_now_add=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
     active = models.BooleanField(default=True)
     qrCode = models.CharField(max_length=10000)
 
@@ -174,7 +174,7 @@ class Consultation(models.Model):
 
     consultationID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     dossier = models.ForeignKey(DossierMedical, on_delete=models.CASCADE)
-    dateConsultation = models.DateField()
+    dateConsultation = models.DateTimeField()
     diagnostic = models.TextField()
     resume = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
@@ -187,8 +187,8 @@ class Ordonnance(models.Model):
     ordonnanceID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
     valide = models.BooleanField(default=True)
-    dateCreation = models.DateField(auto_now_add=True)
-    dateExpiration = models.DateField()
+    dateCreation = models.DateTimeField(auto_now_add=True)
+    dateExpiration = models.DateTimeField()
 
     def __str__(self):
         return f"Ordonnance {self.ordonnanceID}"
@@ -258,7 +258,7 @@ class ActiviteInfermier(models.Model):
     doctors_details = models.TextField()
     nurse_observations = models.TextField()
     # details = models.TextField()
-    createdAt = models.DateField(auto_now_add=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
@@ -303,7 +303,7 @@ class ResultatLabo(models.Model):
     examen = models.ForeignKey('Examen', on_delete=models.CASCADE)
     laboratin = models.ForeignKey(Laboratin, on_delete=models.CASCADE)
     resultat = models.TextField()
-    dateAnalyse = models.DateField()
+    dateAnalyse = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
@@ -335,9 +335,6 @@ class Examen(models.Model):
     TYPE_CHOICES = [
         ('labo', 'Laboratoire'),
         ('radio', 'Radiologie'),
-        ('scanner', 'Scanner'),
-        ('irm', 'IRM'),
-        ('autre', 'Autre'),
     ]
 
     ETAT_CHOICES = [
@@ -355,10 +352,11 @@ class Examen(models.Model):
 
     examenID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
-    notes = models.TextField(blank=True, null=True)
+    radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
+    # patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    doctor_details = models.TextField(blank=True, null=True)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    createdAt = models.DateField(auto_now_add=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
     etat = models.CharField(max_length=20, choices=ETAT_CHOICES)
     priorite = models.CharField(max_length=20, choices=PRIORITE_CHOICES)
 
@@ -369,11 +367,11 @@ class Examen(models.Model):
 
 # ResultatRadio Model
 class ResultatRadio(models.Model):
-    STATUS_CHOICES = [
-        ('en_cours', 'En Cours'),
-        ('termine', 'Terminé'),
-        ('valide', 'Validé'),
-    ]
+    # STATUS_CHOICES = [
+    #     ('en_cours', 'En Cours'),
+    #     ('termine', 'Terminé'),
+    #     ('valide', 'Validé'),
+    # ]
 
     RESRADIO_TYPE_CHOICES = [
         ('radiographie', 'Radiographie'),
@@ -383,13 +381,13 @@ class ResultatRadio(models.Model):
     ]
 
     resRadioID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
+    # radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
     examen = models.ForeignKey(Examen, on_delete=models.CASCADE)
-    radioImgURL = models.URLField(max_length=500)
+    radioImgURL = models.URLField(max_length=500, blank=True, null=True)
     type = models.CharField(max_length=20, choices=RESRADIO_TYPE_CHOICES)
     rapport = models.TextField()
-    dateRealisation = models.DateField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    dateRealisation = models.DateTimeField(auto_now_add=True)
+    # status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
         return f"Résultat Radio {self.resRadioID} - {self.status}"
@@ -413,8 +411,8 @@ class Facture(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     montant = models.FloatField()
     description = models.CharField(max_length=255)
-    createdAt = models.DateField(auto_now_add=True)
-    datePaiement = models.DateField(null=True, blank=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    datePaiement = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     methodePaiement = models.CharField(max_length=20, choices=METHOD_PAIEMENT_CHOICES)
     centreHospitalier = models.ForeignKey(CentreHospitalier, on_delete=models.CASCADE)

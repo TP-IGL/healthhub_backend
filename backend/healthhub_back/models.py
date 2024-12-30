@@ -264,31 +264,6 @@ class ActiviteInfermier(models.Model):
     def __str__(self):
         return f"Activité {self.typeActivite} pour {self.infermier}"
 
-# NurseMedication Model
-# class NurseMedication(models.Model):
-#     STATUS_CHOICES = [
-#         ('planifie', 'Planifiée'),
-#         ('administre', 'Administrée'),
-#         ('reporte', 'Reportée'),
-#         ('annule', 'Annulée'),
-#     ]
-
-#     DOSAGE_CHOICES = [
-#         ('faible', 'Faible'),
-#         ('moyen', 'Moyen'),
-#         ('fort', 'Fort'),
-#     ]
-
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     nurseActivite = models.ForeignKey(ActiviteInfermier, on_delete=models.CASCADE)
-#     ordonnance = models.ForeignKey(Ordonnance, on_delete=models.CASCADE)
-#     administeredAt = models.DateTimeField(null=True, blank=True)
-#     # dosage = models.CharField(max_length=10, choices=DOSAGE_CHOICES)
-#     notes = models.TextField(blank=True, null=True)
-#     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-
-#     def __str__(self):
-#         return f"Médicament {self.ordonnance} administré par {self.nurseActivite.infermier}"
 
 
 # ResultatLabo Model

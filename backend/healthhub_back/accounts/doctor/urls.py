@@ -1,21 +1,13 @@
 from django.urls import path
-from .doctor_view import (
-    DoctorPatientsView,
-    SearchAndRetrieveDossierView,
-    CreateConsultationView,
-    ConsultationListView,
-    ConsultationDetailView,
-    ConsultationSummaryView,
-)
+from .doctor_view import DoctorPatientListView, PatientSearchView
 
 urlpatterns = [
-    # Patient Search and Dossier Retrieval
-    path('dossier/', SearchAndRetrieveDossierView.as_view(), name='search_and_retrieve_dossier'),
+    # Doctor's patient list
+    path('doctors/<str:doctor_id>/patients/', 
+         DoctorPatientListView.as_view(), 
+         name='doctor-patients'),
 
-    # Consultation Management
-    path('consultations/', ConsultationListView.as_view(), name='consultation_list'),
-    path('consultations/create/', CreateConsultationView.as_view(), name='create_consultation'),
-    path('consultations/<uuid:consultation_id>/', ConsultationDetailView.as_view(), name='consultation_detail'),
-    path('consultations/<uuid:consultation_id>/summary/', ConsultationSummaryView.as_view(), name='consultation_summary'),
-    path('patients/', DoctorPatientsView.as_view(), name='doctor-patients'),
+    path('medecin/patients/search/<str:search_type>/<str:search_value>/', 
+     PatientSearchView.as_view(), 
+     name='patient-search'),
 ]

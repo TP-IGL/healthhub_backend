@@ -51,12 +51,14 @@ class PatientService:
                     'password': make_password(validated_data.pop('password')),
                     'first_name': validated_data.get('prenom'),
                     'last_name': validated_data.get('nom'),
-                    'role': 'patient'
+                    'role': 'patient',
+                    'centreHospitalier': validated_data.get('centreHospitalier')
                 }
-
+                print(user_data)
                 # Create User
                 user = User.objects.create(**user_data)
 
+                print(validated_data)
                 # Create Patient
                 patient = Patient.objects.create(
                     user=user,

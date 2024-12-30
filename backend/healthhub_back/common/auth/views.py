@@ -12,15 +12,43 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
 # Handles user login and returns an authentication token.
+from rest_framework import generics, status
+from rest_framework.response import Response
+from .serializers import LoginSerializer
+from .service import login_user
+from rest_framework.permissions import AllowAny
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
-    permission_classes = [AllowAny]  # Allow non-authenticated users to access
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Authenticate user and generate token
         token = login_user(serializer.validated_data['username'], serializer.validated_data['password'])
-        return Response({'token': token}, status=status.HTTP_200_OK)
+
+        # Retrieve user information
+        user = User.objects.get(username=serializer.validated_data['username'])
+
+        # Prepare response data
+        user_data = {
+            'id': str(user.id),
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'role': user.role,
+            'centre_hospitalier': user.centreHospitalier.nom if user.centreHospitalier else None
+        }
+
+        # Return token along with user data
+        return Response({'token': token, 'user': user_data}, status=status.HTTP_200_OK)
+
 
 class LogoutView(APIView):
     """

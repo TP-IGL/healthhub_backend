@@ -352,7 +352,9 @@ class Examen(models.Model):
 
     examenID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
-    radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
+
+    # to be updated later , with radiologue_id in ResultatRadio not here , i did null here cz it may be null in case of labo
+    radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE, null=True, blank=True)
     # patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     doctor_details = models.TextField(blank=True, null=True)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)

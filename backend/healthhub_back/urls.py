@@ -8,4 +8,5 @@ urlpatterns = [
     path('medecin/', include('healthhub_back.accounts.doctor.urls')),  # Médecin functionalities
     path('infermier/', include('healthhub_back.accounts.nurse.urls')),  # Infermier functionalities
     path('radiologue/', include('healthhub_back.accounts.radiologue.urls')),  # Radiologue functionalities
+    path('patient/', include('healthhub_back.accounts.patient.urls')),  # Patient functionalities
 ]

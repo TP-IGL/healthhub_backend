@@ -5,9 +5,10 @@ from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from rest_framework import status
+from .doctor_serializers import ConsultationCreateUpdateSerializer
 
-from healthhub_back.models import Patient, DossierMedical, User
-from healthhub_back.accounts.patient.patient_serializers import PatientsSerializer, DossierMedicalDetailSerializer
+from healthhub_back.models import Patient, DossierMedical , Consultation , DossierMedical
+from healthhub_back.accounts.patient.patient_serializers import PatientsSerializer, DossierMedicalDetailSerializer, ConsultationsSerializer
 from rest_framework import permissions
 
 class IsMedecin(permissions.BasePermission):
@@ -128,3 +129,52 @@ class PatientSearchView(generics.RetrieveAPIView):
             return True
 
         return False
+    
+# consultations
+
+# create consultation
+class ConsultationCreateView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = ConsultationCreateUpdateSerializer
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+# get & update consultation
+class ConsultationDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated, IsMedecin]
+    queryset = Consultation.objects.select_related(
+        'dossier__patient__medecin',
+        'dossier__patient__medecin__user',
+        'dossier__patient__centreHospitalier'
+    ).prefetch_related(
+        'ordonnance_set',
+        'ordonnance_set__ordonnancemedicament_set',
+        'ordonnance_set__ordonnancemedicament_set__med',
+        'examen_set',
+        'examen_set__resultatlabo_set',
+        'examen_set__resultatlabo_set__health_metrics',
+        'examen_set__resultatradio_set',
+        'activiteinfermier_set',
+        'activiteinfermier_set__infermier'
+    )
+    lookup_field = 'consultationID'
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return ConsultationCreateUpdateSerializer
+        return ConsultationsSerializer
+
+    def has_permission_to_access(self, consultation):
+        user = self.request.user
+        return True
+        """ return (user.centreHospitalier == 
+                consultation.dossier.patient.centreHospitalier) """
+
+    def get_object(self):
+        obj = super().get_object()
+        if not self.has_permission_to_access(obj):
+            raise PermissionDenied(
+                "You don't have permission to access this consultation"
+            )
+        return obj

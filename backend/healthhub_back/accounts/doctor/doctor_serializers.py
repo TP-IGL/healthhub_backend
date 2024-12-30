@@ -9,9 +9,12 @@ from healthhub_back.models import (
     Examen,
     ResultatLabo,
     ResultatRadio,
+    Consultation, 
+    DossierMedical,
     HealthMetrics,
 )
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -185,3 +188,29 @@ class DossierMedicalSerializer(serializers.ModelSerializer):
             'qrCode',
             'consultations'
         ]
+
+
+
+
+class ConsultationCreateUpdateSerializer(serializers.ModelSerializer):
+    patient_id = serializers.UUIDField(write_only=True)
+
+    class Meta:
+        model = Consultation
+        fields = ['consultationID', 'patient_id', 'dateConsultation', 
+                 'diagnostic', 'resume', 'status']
+        read_only_fields = ['consultationID', 'dateConsultation']  
+
+    def validate_patient_id(self, value):
+        try:
+            DossierMedical.objects.get(patient__user__id=value)
+            return value
+        except DossierMedical.DoesNotExist:
+            raise serializers.ValidationError("Patient medical file not found")
+
+    def create(self, validated_data):
+        patient_id = validated_data.pop('patient_id')
+        dossier = DossierMedical.objects.get(patient__user__id=patient_id)
+        #  set dateConsultation to current time
+        validated_data['dateConsultation'] = timezone.now()
+        return Consultation.objects.create(dossier=dossier, **validated_data)

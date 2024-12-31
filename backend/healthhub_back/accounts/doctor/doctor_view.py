@@ -5,11 +5,18 @@ from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from rest_framework import status
-from .doctor_serializers import ConsultationCreateUpdateSerializer
-
-from healthhub_back.models import Patient, DossierMedical , Consultation , DossierMedical
-from healthhub_back.accounts.patient.patient_serializers import PatientsSerializer, DossierMedicalDetailSerializer, ConsultationsSerializer
+from healthhub_back.models import Patient, DossierMedical , Consultation , DossierMedical,Consultation,Examen,Radiologue,Laboratin ,    Ordonnance, Consultation, OrdonnanceMedicament, Medicament
+from healthhub_back.accounts.patient.patient_serializers import PatientsSerializer, DossierMedicalDetailSerializer, ConsultationsSerializer,ExamensSerializer,OrdonnancesSerializer, MedicamentsSerializer
 from rest_framework import permissions
+from .doctor_serializers import (
+    ConsultationCreateUpdateSerializer,
+    ExaminationCreateSerializer, 
+    RadiologueListSerializer,
+    LaborantinListSerializer,
+    OrdonnanceCreateSerializer,
+    OrdonnanceUpdateSerializer,
+    MedicamentCreateSerializer
+)
 
 class IsMedecin(permissions.BasePermission):
     """
@@ -178,3 +185,178 @@ class ConsultationDetailView(generics.RetrieveUpdateAPIView):
                 "You don't have permission to access this consultation"
             )
         return obj
+    
+########################### Examination ############################################
+
+
+
+class ExaminationCreateView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = ExaminationCreateSerializer
+
+    def get_consultation(self):
+        return get_object_or_404(
+            Consultation, 
+            consultationID=self.kwargs['consultation_id']
+        )
+
+    def perform_create(self, serializer):
+        consultation = self.get_consultation()
+        if consultation.dossier.patient.centreHospitalier != self.request.user.centreHospitalier:
+            raise PermissionDenied("Not authorized for this hospital's patients")
+        serializer.save(
+            consultation=consultation,
+            etat='planifie'
+        )
+
+class RadiologueListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = RadiologueListSerializer
+
+    def get_queryset(self):
+        hospital_id = self.kwargs['hospital_id']
+        return Radiologue.objects.filter(
+            user__centreHospitalier_id=hospital_id
+        ).select_related('user')
+
+class LaborantinListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = LaborantinListSerializer
+
+    def get_queryset(self):
+        hospital_id = self.kwargs['hospital_id']
+        return Laboratin.objects.filter(
+            user__centreHospitalier_id=hospital_id
+        ).select_related('user')
+
+class ExaminationDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = ExamensSerializer
+    lookup_field = 'examenID'
+
+    def get_queryset(self):
+        return Examen.objects.select_related(
+            'consultation__dossier__patient__medecin__user',
+            'consultation__dossier__patient__centreHospitalier'
+        ).prefetch_related(
+            'resultatlabo_set__health_metrics',
+            'resultatradio_set'
+        )
+
+    def get_object(self):
+        obj = super().get_object()
+        if obj.consultation.dossier.patient.centreHospitalier != self.request.user.centreHospitalier:
+            raise PermissionDenied("Not authorized for this hospital's examinations")
+        return obj
+    
+###########################      Prescription         ##############################
+
+
+class MedicamentCreateView(generics.CreateAPIView):
+    """Create a new medication"""
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = MedicamentCreateSerializer
+    queryset = Medicament.objects.all()
+
+class OrdonnanceCreateView(generics.CreateAPIView):
+    """Create a new prescription for a consultation"""
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = OrdonnanceCreateSerializer
+
+    def perform_create(self, serializer):
+        consultation = get_object_or_404(
+            Consultation, 
+            consultationID=self.kwargs['consultation_id']
+        )
+
+        # Check if doctor is authorized
+        if consultation.dossier.patient.medecin.user != self.request.user:
+            raise PermissionDenied(
+                "You are not authorized to create prescriptions for this patient"
+            )
+
+        serializer.save(consultation=consultation)
+
+class OrdonnanceDetailView(generics.RetrieveAPIView):
+    """Get prescription details"""
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = OrdonnancesSerializer
+    lookup_field = 'ordonnanceID'
+    queryset = Ordonnance.objects.all()
+
+    def get_queryset(self):
+        return Ordonnance.objects.select_related(
+            'consultation__dossier__patient__medecin__user'
+        ).prefetch_related(
+            'ordonnancemedicament_set__med'
+        )
+
+    def get_object(self):
+        obj = super().get_object()
+        if obj.consultation.dossier.patient.medecin.user != self.request.user:
+            raise PermissionDenied(
+                "You are not authorized to view this prescription"
+            )
+        return obj
+
+class ConsultationOrdonnanceListView(generics.ListAPIView):
+    """List all prescriptions for a consultation"""
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = OrdonnancesSerializer
+
+    def get_queryset(self):
+        consultation = get_object_or_404(
+            Consultation, 
+            consultationID=self.kwargs['consultation_id']
+        )
+
+        # Check if doctor is authorized
+        if consultation.dossier.patient.medecin.user != self.request.user:
+            raise PermissionDenied(
+                "You are not authorized to view prescriptions for this patient"
+            )
+
+        return Ordonnance.objects.filter(
+            consultation=consultation
+        ).select_related(
+            'consultation'
+        ).prefetch_related(
+            'ordonnancemedicament_set__med'
+        )
+
+class OrdonnanceUpdateView(generics.UpdateAPIView):
+    """Update prescription validation status"""
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = OrdonnanceUpdateSerializer
+    lookup_field = 'ordonnanceID'
+    queryset = Ordonnance.objects.all()
+    http_method_names = ['patch']
+
+    def get_object(self):
+        obj = super().get_object()
+        if obj.consultation.dossier.patient.medecin.user != self.request.user:
+            raise PermissionDenied(
+                "You are not authorized to update this prescription"
+            )
+        return obj
+
+class MedicamentListView(generics.ListAPIView):
+    """List all available medications"""
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = MedicamentsSerializer
+    queryset = Medicament.objects.all()
+
+    def get_queryset(self):
+        queryset = Medicament.objects.all()
+
+        # Filter by type if provided
+        med_type = self.request.query_params.get('type', None)
+        if med_type:
+            queryset = queryset.filter(type=med_type)
+
+        # Search by name if provided
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(nom__icontains=search)
+
+        return queryset

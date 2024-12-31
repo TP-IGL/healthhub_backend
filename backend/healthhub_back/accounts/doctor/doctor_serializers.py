@@ -12,9 +12,16 @@ from healthhub_back.models import (
     Consultation, 
     DossierMedical,
     HealthMetrics,
+    Radiologue,
+    Laboratin,
+    Ordonnance, 
+    OrdonnanceMedicament, 
+    Medicament
 )
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from healthhub_back.accounts.patient.patient_serializers import ExamensSerializer
+
 
 User = get_user_model()
 
@@ -214,3 +221,102 @@ class ConsultationCreateUpdateSerializer(serializers.ModelSerializer):
         #  set dateConsultation to current time
         validated_data['dateConsultation'] = timezone.now()
         return Consultation.objects.create(dossier=dossier, **validated_data)
+    
+
+
+class ExaminationCreateSerializer(serializers.ModelSerializer):
+    radiologue_id = serializers.UUIDField(required=False, write_only=True)
+    laborantin_id = serializers.UUIDField(required=False, write_only=True)
+
+    class Meta:
+        model = Examen
+        fields = ['type', 'priorite', 'doctor_details', 
+                 'radiologue_id', 'laborantin_id']
+
+    def validate(self, data):
+        if data['type'] == 'radio':
+            if 'radiologue_id' not in data:
+                raise serializers.ValidationError(
+                    "radiologue_id is required for radio examinations"
+                )
+            try:
+                data['radiologue'] = Radiologue.objects.get(
+                    user_id=data.pop('radiologue_id')
+                )
+            except Radiologue.DoesNotExist:
+                raise serializers.ValidationError("Invalid radiologue_id")
+
+        elif data['type'] == 'labo':
+            if 'laborantin_id' not in data:
+                raise serializers.ValidationError(
+                    "laborantin_id is required for laboratory examinations"
+                )
+            try:
+                data['laborantin'] = Laboratin.objects.get(
+                    user_id=data.pop('laborantin_id')
+                )
+            except Laboratin.DoesNotExist:
+                raise serializers.ValidationError("Invalid laborantin_id")
+        return data
+
+class RadiologueListSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='user.get_full_name')
+
+    class Meta:
+        model = Radiologue
+        fields = ['user_id', 'name', 'specialite', 'shift', 'nombreTests']
+
+class LaborantinListSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='user.get_full_name')
+
+    class Meta:
+        model = Laboratin
+        fields = ['user_id', 'name', 'specialite', 'shift', 'nombreTests']
+
+#### Prescription
+
+
+class MedicamentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medicament
+        fields = ['nom', 'type', 'description']
+
+class OrdonnanceMedicamentCreateSerializer(serializers.ModelSerializer):
+    medicament_id = serializers.UUIDField(write_only=True)
+
+    class Meta:
+        model = OrdonnanceMedicament
+        fields = [
+            'medicament_id',
+            'duree',
+            'dosage',
+            'frequence',
+            'instructions'
+        ]
+
+class OrdonnanceCreateSerializer(serializers.ModelSerializer):
+    medicaments = OrdonnanceMedicamentCreateSerializer(many=True, write_only=True)
+
+    class Meta:
+        model = Ordonnance
+        fields = ['dateExpiration', 'medicaments']
+
+    def create(self, validated_data):
+        medicaments_data = validated_data.pop('medicaments')
+        ordonnance = Ordonnance.objects.create(**validated_data)
+
+        for medicament_data in medicaments_data:
+            medicament_id = medicament_data.pop('medicament_id')
+            medicament = Medicament.objects.get(medicamentID=medicament_id)
+            OrdonnanceMedicament.objects.create(
+                ordonnance=ordonnance,
+                med=medicament,
+                **medicament_data
+            )
+
+        return ordonnance
+
+class OrdonnanceUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ordonnance
+        fields = ['valide']

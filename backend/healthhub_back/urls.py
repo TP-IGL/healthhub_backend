@@ -9,4 +9,5 @@ urlpatterns = [
     path('infermier/', include('healthhub_back.accounts.nurse.urls')),  # Infermier functionalities
     path('radiologue/', include('healthhub_back.accounts.radiologue.urls')),  # Radiologue functionalities
     path('patient/', include('healthhub_back.accounts.patient.urls')),  # Patient functionalities
+    path('laborantin/', include('healthhub_back.accounts.laborantin.urls')),  # Laborantin functionalities
 ]

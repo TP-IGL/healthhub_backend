@@ -18,7 +18,7 @@ def create_sample_data():
     # Clear existing data
     print("Clearing existing data...")
     models_to_clear = [
-        Facture, ResultatLabo, ResultatRadio, ActiviteInfermier,
+        Facture, HealthMetrics, ResultatLabo, ResultatRadio, ActiviteInfermier,
         OrdonnanceMedicament, Ordonnance, Consultation, Examen,
         DossierMedical, Medicament,
         Infermier, Laboratin, PharmacienHospitalier, Radiologue,
@@ -53,7 +53,7 @@ def create_sample_data():
         user, created = User.objects.get_or_create(
             username=username,
             defaults={
-                "password": make_password(f"password{i+1}"),
+                "password":make_password(f"password{i+1}"),
                 "email": f"medecin{i+1}@hospital.com",
                 "first_name": f"Doctor{i+1}",
                 "last_name": f"Smith{i+1}",
@@ -78,7 +78,6 @@ def create_sample_data():
         else:
             print(f"Medecin profile already exists for: {user.username}")
         medecins.append(medecin)
-
     # Create Infermiers
     infermiers = []
     shifts = ['jour', 'nuit', 'rotation']
@@ -97,7 +96,7 @@ def create_sample_data():
             }
         )
         if created:
-            print(f"Created User: {user.username} with ID: {user.id}")
+            print(f"Created User: {user.username} with password: {user.id}")
         else:
             print(f"User already exists: {user.username} with ID: {user.id}")
 
@@ -386,6 +385,38 @@ def create_sample_data():
             )
             if lab_created:
                 print(f"Created ResultatLabo {resultat_labo.resLaboID} for Examen {examen.examenID}")
+                # **Creating HealthMetrics for each ResultatLabo**
+                print(f"Creating HealthMetrics for ResultatLabo {resultat_labo.resLaboID}...")
+                metric_types = ['pression_arterielle', 'glycemie', 'niveaux_cholesterol']
+                for mt in metric_types:
+                    # Determine unit based on metric_type
+                    if mt == 'pression_arterielle':
+                        unit = 'mmHg'
+                        value = round(120 + i * 5 + 0.5, 2)  # Example value
+                    elif mt == 'glycemie':
+                        unit = 'mg/dL'
+                        value = round(100 + i * 3 + 0.2, 2)  # Example value
+                    elif mt == 'niveaux_cholesterol':
+                        unit = 'mg/dL'
+                        value = round(200 + i * 4 + 0.3, 2)  # Example value
+                    else:
+                        unit = 'unités'
+                        value = 0.0
+
+                    health_metric, hm_created = HealthMetrics.objects.get_or_create(
+                        resLabo=resultat_labo,
+                        metric_type=mt,
+                        defaults={
+                            "medical_record_id": 0,
+                            "value": value,
+                            "unit": unit,
+                            "recorded_by": 0
+                        }
+                    )
+                    if hm_created:
+                        print(f"  Created HealthMetric '{health_metric.metric_type}' with value {health_metric.value} {health_metric.unit}")
+                    else:
+                        print(f"  HealthMetric '{health_metric.metric_type}' already exists for ResultatLabo {resultat_labo.resLaboID}")
             else:
                 print(f"ResultatLabo already exists for Examen {examen.examenID}")
         else:

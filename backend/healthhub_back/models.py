@@ -188,7 +188,7 @@ class Ordonnance(models.Model):
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
     valide = models.BooleanField(default=True)
     dateCreation = models.DateTimeField(auto_now_add=True)
-    dateExpiration = models.DateTimeField()
+    dateExpiration = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Ordonnance {self.ordonnanceID}"
@@ -287,9 +287,9 @@ class ResultatLabo(models.Model):
 # HealthMetrics Model
 class HealthMetrics(models.Model):
     METRIC_TYPE_CHOICES = [
-        ('temperature', 'Température'),
         ('pression_arterielle', 'Pression Artérielle'),
         ('glycemie', 'Glycémie'),
+        ('niveaux_cholesterol', 'Niveaux de Cholestérol'),
         ('autre', 'Autre'),
     ]
 
@@ -299,7 +299,7 @@ class HealthMetrics(models.Model):
     value = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)
     measured_at = models.DateTimeField(auto_now_add=True)
-    recorded_by = models.IntegerField()
+    recorded_by = models.IntegerField(default=0)
     resLabo = models.ForeignKey(ResultatLabo, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
@@ -330,6 +330,7 @@ class Examen(models.Model):
 
     # to be updated later , with radiologue_id in ResultatRadio not here , i did null here cz it may be null in case of labo
     radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE, null=True, blank=True)
+    laborantin = models.ForeignKey(Laboratin, on_delete=models.CASCADE, null=True, blank=True)
     # patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     doctor_details = models.TextField(blank=True, null=True)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
@@ -344,11 +345,6 @@ class Examen(models.Model):
 
 # ResultatRadio Model
 class ResultatRadio(models.Model):
-    # STATUS_CHOICES = [
-    #     ('en_cours', 'En Cours'),
-    #     ('termine', 'Terminé'),
-    #     ('valide', 'Validé'),
-    # ]
 
     RESRADIO_TYPE_CHOICES = [
         ('radiographie', 'Radiographie'),

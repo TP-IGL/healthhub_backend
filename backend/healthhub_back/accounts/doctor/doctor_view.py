@@ -15,8 +15,10 @@ from .doctor_serializers import (
     LaborantinListSerializer,
     OrdonnanceCreateSerializer,
     OrdonnanceUpdateSerializer,
-    MedicamentCreateSerializer
+    MedicamentCreateSerializer,
+    PrescriptionCreateSerializer,
 )
+
 
 class IsMedecin(permissions.BasePermission):
     """
@@ -74,7 +76,7 @@ class PatientSearchView(generics.RetrieveAPIView):
             'consultation_set__ordonnance_set__ordonnancemedicament_set__med',
             'consultation_set__examen_set',
             'consultation_set__examen_set__resultatlabo_set',
-            'consultation_set__examen_set__resultatlabo_set__health_metrics',
+            'consultation_set__examen_set__resultatlabo_set__healthmetrics_set',  # Updated here
             'consultation_set__examen_set__resultatradio_set',
             'consultation_set__activiteinfermier_set',
             'consultation_set__activiteinfermier_set__infermier'
@@ -160,7 +162,7 @@ class ConsultationDetailView(generics.RetrieveUpdateAPIView):
         'ordonnance_set__ordonnancemedicament_set__med',
         'examen_set',
         'examen_set__resultatlabo_set',
-        'examen_set__resultatlabo_set__health_metrics',
+        'examen_set__resultatlabo_set__healthmetrics_set',
         'examen_set__resultatradio_set',
         'activiteinfermier_set',
         'activiteinfermier_set__infermier'
@@ -202,6 +204,8 @@ class ExaminationCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         consultation = self.get_consultation()
+        print('H  ',consultation.dossier.patient.centreHospitalier)
+        print(self.request.user)
         if consultation.dossier.patient.centreHospitalier != self.request.user.centreHospitalier:
             raise PermissionDenied("Not authorized for this hospital's patients")
         serializer.save(
@@ -239,7 +243,7 @@ class ExaminationDetailView(generics.RetrieveAPIView):
             'consultation__dossier__patient__medecin__user',
             'consultation__dossier__patient__centreHospitalier'
         ).prefetch_related(
-            'resultatlabo_set__health_metrics',
+            'resultatlabo_set__healthmetrics_set',
             'resultatradio_set'
         )
 
@@ -360,3 +364,34 @@ class MedicamentListView(generics.ListAPIView):
             queryset = queryset.filter(nom__icontains=search)
 
         return queryset
+    
+
+
+class PrescriptionCreateView(generics.CreateAPIView):
+    serializer_class = PrescriptionCreateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_consultation(self, consultation_id):
+        try:
+            return Consultation.objects.get(pk=consultation_id)
+        except Consultation.DoesNotExist:
+            return None
+
+    def post(self, request, consultation_id, *args, **kwargs):
+        consultation = self.get_consultation(consultation_id)
+        if not consultation:
+            return Response(
+                {"detail": "Consultation not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = self.get_serializer(data=request.data, context={'consultation': consultation})
+        serializer.is_valid(raise_exception=True)
+        ordonnance = serializer.save()
+
+        # Optionally, serialize the created Ordonnance to return in the response
+        ordonnance_serializer = OrdonnancesSerializer(ordonnance)
+        return Response(
+            ordonnance_serializer.data,
+            status=status.HTTP_201_CREATED
+        )

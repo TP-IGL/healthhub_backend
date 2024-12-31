@@ -25,7 +25,7 @@ class PatientMedicalFileView(generics.RetrieveAPIView):
             'consultation_set__ordonnance_set__ordonnancemedicament_set__med',
             'consultation_set__examen_set',
             'consultation_set__examen_set__resultatlabo_set',
-            'consultation_set__examen_set__resultatlabo_set__health_metrics',
+            'consultation_set__examen_set__resultatlabo_set__healthmetrics_set',
             'consultation_set__examen_set__resultatradio_set',
             'consultation_set__activiteinfermier_set',
             'consultation_set__activiteinfermier_set__infermier'

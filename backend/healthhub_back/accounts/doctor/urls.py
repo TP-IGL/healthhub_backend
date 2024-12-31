@@ -1,6 +1,6 @@
 from django.urls import path
 from .doctor_view import (ConsultationCreateView, ConsultationDetailView, DoctorPatientListView, PatientSearchView,
-                          ExaminationCreateView, RadiologueListView,LaborantinListView, ExaminationDetailView,OrdonnanceCreateView, OrdonnanceDetailView,
+                          ExaminationCreateView, PrescriptionCreateView, RadiologueListView,LaborantinListView, ExaminationDetailView,OrdonnanceCreateView, OrdonnanceDetailView,
                         ConsultationOrdonnanceListView, OrdonnanceUpdateView,
                         MedicamentCreateView, MedicamentListView)
 
@@ -44,11 +44,6 @@ urlpatterns = [
     ),
     # prescription
     path(
-        'consultations/<uuid:consultation_id>/prescriptions/',
-        OrdonnanceCreateView.as_view(),
-        name='prescription-create'
-    ),
-    path(
         'prescriptions/<uuid:ordonnanceID>/',
         OrdonnanceDetailView.as_view(),
         name='prescription-detail'
@@ -63,16 +58,9 @@ urlpatterns = [
         OrdonnanceUpdateView.as_view(),
         name='prescription-update'
     ),
-
-    # Medication endpoints
     path(
-        'medications/',
-        MedicamentListView.as_view(),
-        name='medication-list'
-    ),
-    path(
-        'medications/create/',
-        MedicamentCreateView.as_view(),
-        name='medication-create'
+        'consultations/<uuid:consultation_id>/prescriptions/',
+        PrescriptionCreateView.as_view(),
+        name='create-prescription'
     ),
 ]

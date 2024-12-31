@@ -18,6 +18,8 @@ from healthhub_back.models import (
     OrdonnanceMedicament, 
     Medicament
 )
+from django.db import transaction
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from healthhub_back.accounts.patient.patient_serializers import ExamensSerializer
@@ -320,3 +322,81 @@ class OrdonnanceUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ordonnance
         fields = ['valide']
+
+
+
+class MedicationInputSerializer(serializers.Serializer):
+    nom = serializers.CharField(max_length=255)
+    type = serializers.ChoiceField(choices=Medicament.TYPE_CHOICES)
+    description = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+    dosage = serializers.ChoiceField(choices=[
+        ('faible', 'Faible'),
+        ('moyen', 'Moyen'),
+        ('fort', 'Fort'),
+    ])
+    duree = serializers.CharField(max_length=50)
+    frequence = serializers.CharField(max_length=50)
+    instructions = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        # Ensure that for existing medications, description is not required
+        if 'description' not in attrs or not attrs['description']:
+            # Check if the medication already exists
+            if not Medicament.objects.filter(nom=attrs['nom'], type=attrs['type']).exists():
+                raise serializers.ValidationError({
+                    "description": "Description is required for new medications."
+                })
+        return attrs
+    
+
+
+class PrescriptionCreateSerializer(serializers.Serializer):
+    medications = MedicationInputSerializer(many=True)
+
+    def validate_medications(self, value):
+        if not value:
+            raise serializers.ValidationError("At least one medication must be provided.")
+        return value
+
+    def create(self, validated_data):
+        medications_data = validated_data.pop('medications')
+        consultation = self.context.get('consultation')
+
+        if not consultation:
+            raise serializers.ValidationError("Consultation context is required.")
+
+        with transaction.atomic():
+            # Create the Ordonnance
+            ordonnance = Ordonnance.objects.create(
+                consultation=consultation,
+                valide=False,  # or set based on your requirements
+                dateExpiration=None  # You may set this based on your logic
+            )
+
+            for med_data in medications_data:
+                nom = med_data.get('nom')
+                type_ = med_data.get('type')
+                description = med_data.get('description', '')
+
+                # Get or create Medicament
+                medicament, created = Medicament.objects.get_or_create(
+                    nom=nom,
+                    type=type_,
+                    defaults={'description': description}
+                )
+                if not created and not medicament.description:
+                    # Update description if it was previously blank and now provided
+                    medicament.description = description
+                    medicament.save()
+
+                # Create OrdonnanceMedicament
+                OrdonnanceMedicament.objects.create(
+                    med=medicament,
+                    ordonnance=ordonnance,
+                    duree=med_data.get('duree'),
+                    dosage=med_data.get('dosage'),
+                    frequence=med_data.get('frequence'),
+                    instructions=med_data.get('instructions', '')
+                )
+
+            return ordonnance

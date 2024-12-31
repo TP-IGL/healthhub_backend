@@ -338,7 +338,7 @@ class Examen(models.Model):
     priorite = models.CharField(max_length=20, choices=PRIORITE_CHOICES)
 
     def __str__(self):
-        return f"Examen {self.type} pour {self.patient}"
+        return f"Examen {self.type} pour {self.consultation.dossier.patient}"
 
 # Radiologue Model (Already Defined Earlier)
 
@@ -367,7 +367,7 @@ class ResultatRadio(models.Model):
     # status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
-        return f"Résultat Radio {self.resRadioID} - {self.status}"
+        return f"Résultat Radio {self.resRadioID} - {self.examen.etat}"
 
 # Facture Model
 class Facture(models.Model):

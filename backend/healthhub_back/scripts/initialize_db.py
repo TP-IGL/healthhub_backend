@@ -11,8 +11,7 @@ from django.utils import timezone
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 
-# Import models after django.setup()
-from healthhub_back.models import *  # Ensure this matches your app name
+from healthhub_back.models import * 
 
 def create_sample_data():
     # Clear existing data

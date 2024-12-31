@@ -40,8 +40,6 @@ class DoctorPatientListView(generics.ListAPIView):
 
     def get_queryset(self):
         doctor_id = self.kwargs.get('doctor_id')
-
-
         print(self.request.user.id)
         print(doctor_id)
         # Verify the requesting user is the doctor or an admin

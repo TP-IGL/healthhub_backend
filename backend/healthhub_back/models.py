@@ -1,10 +1,7 @@
-# healthhub_backend/models.py
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 import uuid
 
-# Centre Hospitalier Model
 class CentreHospitalier(models.Model):
     id = models.AutoField(primary_key=True)
     nom = models.CharField(max_length=255)
@@ -141,7 +138,7 @@ class Patient(models.Model):
     NSS = models.BigIntegerField(unique=True)
     nom = models.CharField(max_length=255)
     prenom = models.CharField(max_length=255)
-    dateNaissance = models.DateTimeField()
+    dateNaissance = models.DateField()
     adresse = models.CharField(max_length=255)
     telephone = models.CharField(max_length=20)
     mutuelle = models.CharField(max_length=255)

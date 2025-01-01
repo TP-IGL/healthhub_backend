@@ -7,6 +7,8 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from healthhub_back.models import Patient, DossierMedical
 from .patient_serializers import DossierMedicalDetailSerializer
+from rest_framework.views import APIView
+
 
 class PatientMedicalFileView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
@@ -57,7 +59,68 @@ class PatientMedicalFileView(generics.RetrieveAPIView):
             return user.centreHospitalier == patient.centreHospitalier 
 
         return False
+
+class RetrieveQRCodeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, patient_id):
+        # Fetch the dossier associated with the patient
+        dossier = get_object_or_404(DossierMedical, patient__user__id=patient_id)
+
+        # Check permissions
+        if not self.has_permission_to_access(request.user, dossier.patient.user.id):
+            return Response(
+                {"error": "You don't have permission to access this QR code"},
+                status=403
+            )
+
+        # Return the QR code
+        return Response({"qrCode": dossier.qrCode})
+
+    def has_permission_to_access(self, user, patient_id):
+        # If user is the patient
+        if user.id == patient_id:
+            return True
+        if user.role == 'admin':
+            return True
+        # If user is medical staff from the same hospital
+        if user.role in ['medecin', 'infermier', 'pharmacien', 'laborantin', 'radiologue', 'admin']:
+            patient = get_object_or_404(Patient, user__id=patient_id)
+            return user.centreHospitalier == patient.centreHospitalier 
+
+        return False
     
+class RetrieveQRCodeViewNSS(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, nss):
+        # Fetch the dossier associated with the patient using their NSS
+        dossier = get_object_or_404(DossierMedical, patient__NSS=nss)
+
+        # Check permissions
+        if not self.has_permission_to_access(request.user, dossier.patient.user.id):
+            return Response(
+                {"error": "You don't have permission to access this QR code"},
+                status=403
+            )
+
+        # Return the QR code
+        return Response({"qrCode": dossier.qrCode})
+
+    def has_permission_to_access(self, user, patient_id):
+        # If user is the patient
+        if user.id == patient_id:
+            return True
+        if user.role == 'admin':
+            return True
+        # If user is medical staff from the same hospital
+        if user.role in ['medecin', 'infermier', 'pharmacien', 'laborantin', 'radiologue', 'admin']:
+            patient = get_object_or_404(Patient, user__id=patient_id)
+            return user.centreHospitalier == patient.centreHospitalier 
+
+        return False
+
+
 ''' Example output : 
 {
     "dossierID": "uuid-value",

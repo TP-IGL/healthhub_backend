@@ -230,7 +230,6 @@ class OrdonnanceMedicament(models.Model):
     def __str__(self):
         return f"Médicament {self.med.nom} pour {self.ordonnance}"
 
-# Infermier Model (Already Defined Earlier)
 
 # ActiviteInfermier Model
 class ActiviteInfermier(models.Model):

@@ -1,182 +1,103 @@
-# laborantin_views.py
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
+# views.py
+from django.db.models import F
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
-from django.db.models import Count, Avg, F
-from django.utils import timezone
-from datetime import timedelta
-from django.shortcuts import get_object_or_404
-from healthhub_back.models import Examen, ResultatLabo, HealthMetrics, Laboratin
-
+from healthhub_back.models import Examen, ResultatLabo, Laboratin, Patient
 from .laborantin_serializers import (
-    LaborantinExaminationListSerializer,
-    ResultatLaboCreateUpdateSerializer,
-    LaborantinStatisticsSerializer,
-    PatientLabHistorySerializer,
-    HealthMetricCreateSerializer
+    ExamRequiredSerializer, ResultatLaboCreateSerializer, LabResultHistorySerializer, ResultatLaboHistorySerializer
 )
+from rest_framework.permissions import IsAuthenticated
 
-from rest_framework import permissions
-
+# Custom permission to allow only lab technicians
 class IsLaborantin(permissions.BasePermission):
     """
-    Custom permission to only allow doctors to access the view.
+    Custom permission to allow only lab technicians.
     """
     def has_permission(self, request, view):
-        return request.user.role == 'laborantin' or request.user.role == 'admin'  
+        return request.user.is_authenticated and request.user.role == 'laborantin'
 
-class LaborantinExaminationListView(generics.ListAPIView):
-    """List all laboratory examinations for the lab technician"""
+class ExamListView(generics.ListAPIView):
+    """
+    GET: Retrieve a list of all exams required by the lab technician.
+    Each exam includes doctor_details and, if the exam is completed (etat='termine'),
+    includes associated health metrics.
+    """
+    serializer_class = ExamRequiredSerializer
     permission_classes = [IsAuthenticated, IsLaborantin]
-    serializer_class = LaborantinExaminationListSerializer
 
     def get_queryset(self):
-        queryset = Examen.objects.filter(
-            type='labo',
-            consultation__dossier__patient__centreHospitalier=self.request.user.centreHospitalier
-        ).select_related(
-            'consultation__dossier__patient',
-            'consultation__dossier__patient__medecin__user'
-        )
+        # Get the laborantin instance linked to the user
+        try:
+            laborantin = self.request.user.laboratin
+        except Laboratin.DoesNotExist:
+            return Examen.objects.none()
 
-        # Apply filters
-        status = self.request.query_params.get('status')
-        priority = self.request.query_params.get('priority')
-        start_date = self.request.query_params.get('start_date')
-        end_date = self.request.query_params.get('end_date')
-
-        if status:
-            queryset = queryset.filter(etat=status)
-        if priority:
-            queryset = queryset.filter(priorite=priority)
-        if start_date and end_date:
-            queryset = queryset.filter(createdAt__range=[start_date, end_date])
-
-        return queryset
-
-class LaborantinExaminationDetailView(generics.RetrieveAPIView):
-    """Get detailed information about a specific examination"""
-    permission_classes = [IsAuthenticated, IsLaborantin]
-    serializer_class = PatientLabHistorySerializer
-    lookup_field = 'examenID'
-
-    def get_queryset(self):
+        # Filter exams of type 'labo' and associated with the hospital center
+        laboratin = self.request.user.laboratin
         return Examen.objects.filter(
             type='labo',
-            consultation__dossier__patient__centreHospitalier=self.request.user.centreHospitalier
-        ).select_related(
-            'consultation__dossier__patient',
-            'consultation__dossier__patient__medecin__user'
-        ).prefetch_related(
-            'resultatlabo_set__health_metrics'
+            laborantin=laborantin,
+            etat__in=['planifie', 'en_cours', 'termine']  # Include 'termine' to see results
         )
 
-class ResultatLaboCreateView(generics.CreateAPIView):
-    """Create new laboratory results"""
+class SubmitLabTestView(generics.CreateAPIView):
+    serializer_class = ResultatLaboCreateSerializer
     permission_classes = [IsAuthenticated, IsLaborantin]
-    serializer_class = ResultatLaboCreateUpdateSerializer
 
-    def perform_create(self, serializer):
-        examen = get_object_or_404(Examen, examenID=self.kwargs['examenID'])
+    def create(self, request, *args, **kwargs):
+        try:
+            laboratin = request.user.laboratin
+        except Laboratin.DoesNotExist:
+            return Response({"detail": "Laborantin profile not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if examen.consultation.dossier.patient.centreHospitalier != self.request.user.centreHospitalier:
-            raise PermissionDenied("Not authorized for this hospital's examinations")
+        if laboratin.nombreTests <= 0:
+            return Response({"detail": "No remaining tests to perform."}, status=status.HTTP_400_BAD_REQUEST)
 
-        laboratin = get_object_or_404(Laboratin, user=self.request.user)
-        serializer.save(
-            examen=examen,
-            laboratin=laboratin
-        )
+        serializer = self.get_serializer(data=request.data, context={'laboratin': laboratin})
+        serializer.is_valid(raise_exception=True)
 
-        # Update examination status
+        examen = serializer.validated_data.get('examen')
+
+        if not Examen.objects.filter(
+            examenID=examen.examenID,
+            type='labo',
+            etat__in=['planifie', 'en_cours', 'termine'],
+        ).exists():
+            return Response({"detail": "Examen not found or not assigned to you."}, status=status.HTTP_400_BAD_REQUEST)
+
+        examen.etat = 'en_cours'
+        examen.save()
+
+        resultat_labo = serializer.save()
+
         examen.etat = 'termine'
         examen.save()
 
-        # Update technician's test count
-        laboratin.nombreTests += 1
-        laboratin.save()
+        Laboratin.objects.filter(user_id=laboratin.user.id).update(nombreTests=F('nombreTests') - 1)
 
-class ResultatLaboUpdateView(generics.UpdateAPIView):
-    """Update existing laboratory results"""
+        return Response(ExamRequiredSerializer(examen).data, status=status.HTTP_201_CREATED)
+    
+
+class LabResultHistoryView(generics.ListAPIView):
+    """
+    GET: Retrieve history of lab results for a given patient by patient NSS.
+    """
+    serializer_class = ResultatLaboHistorySerializer
     permission_classes = [IsAuthenticated, IsLaborantin]
-    serializer_class = ResultatLaboCreateUpdateSerializer
-    lookup_field = 'resLaboID'
 
     def get_queryset(self):
-        return ResultatLabo.objects.filter(
-            laboratin__user=self.request.user
-        )
+        patient_nss = self.kwargs.get('patient_nss')
 
-class HealthMetricCreateView(generics.CreateAPIView):
-    """Add new health metrics to results"""
-    permission_classes = [IsAuthenticated, IsLaborantin]
-    serializer_class = HealthMetricCreateSerializer
+        # Optional: Validate if the patient exists
+        if not Patient.objects.filter(NSS=patient_nss).exists():
+            return ResultatLabo.objects.none()  # Alternatively, raise a 404 error
 
-    def perform_create(self, serializer):
-        resultat_labo = get_object_or_404(
-            ResultatLabo,
-            resLaboID=self.kwargs['resLaboID'],
-            laboratin__user=self.request.user
-        )
-        serializer.save(
-            resLabo=resultat_labo,
-            medical_record_id=resultat_labo.examen.consultation.dossier.dossierID,
-            recorded_by=self.request.user.id
-        )
-
-class LaborantinStatisticsView(generics.RetrieveAPIView):
-    """Get lab technician statistics"""
-    permission_classes = [IsAuthenticated, IsLaborantin]
-    serializer_class = LaborantinStatisticsSerializer
-
-    def get_object(self):
-        laboratin = get_object_or_404(Laboratin, user=self.request.user)
-
-        # Calculate statistics
-        results = ResultatLabo.objects.filter(laboratin=laboratin)
-
-        # Tests by status
-        tests_by_status = results.values('status').annotate(
-            count=Count('resLaboID')
-        )
-
-        # Tests by priority
-        tests_by_priority = results.values(
-            'examen__priorite'
-        ).annotate(
-            count=Count('resLaboID')
-        )
-
-        # Average processing time
-        avg_time = results.aggregate(
-            avg_time=Avg(F('dateAnalyse') - F('examen__createdAt'))
-        )['avg_time']
-
-        # Add calculated fields
-        laboratin.total_tests = results.count()
-        laboratin.tests_by_status = {
-            item['status']: item['count'] for item in tests_by_status
-        }
-        laboratin.tests_by_priority = {
-            item['examen__priorite']: item['count'] for item in tests_by_priority
-        }
-        laboratin.average_processing_time = avg_time or timedelta(0)
-
-        return laboratin
-
-class PatientLabHistoryView(generics.ListAPIView):
-    """Get patient's laboratory history"""
-    permission_classes = [IsAuthenticated, IsLaborantin]
-    serializer_class = PatientLabHistorySerializer
-
-    def get_queryset(self):
-        return Examen.objects.filter(
-            type='labo',
-            consultation__dossier__patient__user_id=self.kwargs['patient_id'],
-            consultation__dossier__patient__centreHospitalier=self.request.user.centreHospitalier
+        history = ResultatLabo.objects.filter(
+            examen__consultation__dossier__patient__NSS=patient_nss,
+            examen__type='labo'
         ).select_related(
-            'consultation__dossier__patient'
+            'examen'
         ).prefetch_related(
-            'resultatlabo_set__health_metrics'
-        )
+            'healthmetrics_set'  # Updated to use default reverse relationship
+        ).order_by('-dateAnalyse')
+        return history

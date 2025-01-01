@@ -1,90 +1,117 @@
-# laborantin_serializers.py
-from rest_framework import serializers
-from healthhub_back.models import Examen, ResultatLabo, HealthMetrics, Laboratin
-from healthhub_back.accounts.patient.patient_serializers import PatientsSerializer, HealthMetricsSerializer,ResultatLaboSerializer
+# serializers.py
 
-class LaborantinExaminationListSerializer(serializers.ModelSerializer):
-    patient = serializers.SerializerMethodField()
-    doctor_name = serializers.CharField(
-        source='consultation.dossier.patient.medecin.__str__',
-        read_only=True
-    )
+from rest_framework import serializers
+from healthhub_back.models import (
+    Examen, ResultatLabo, HealthMetrics, Medicament, OrdonnanceMedicament,
+    Medicament, Consultation, Medecin
+)
+from healthhub_back.accounts.patient.patient_serializers import HealthMetricsSerializer,ResultatLaboSerializer
+
+
+from django.utils import timezone
+
+
+class ExamRequiredSerializer(serializers.ModelSerializer):
+    doctor_details = serializers.CharField(read_only=True)
+    patient = serializers.CharField(source='consultation.dossier.patient.__str__', read_only=True)
+    patient_id = serializers.CharField(source='consultation.dossier.patient.user.id', read_only=True)
+    nss = serializers.CharField(source='consultation.dossier.patient.NSS', read_only=True)
+    type = serializers.CharField(source='get_type_display', read_only=True)
+    etat = serializers.CharField(source='get_etat_display', read_only=True)
+    priorite = serializers.CharField(source='get_priorite_display', read_only=True)
+    # Include 'doctor_details' from Examen model
+    # Conditionally include 'health_metrics' if 'etat' is 'termine'
+    health_metrics = serializers.SerializerMethodField()
 
     class Meta:
         model = Examen
         fields = [
             'examenID',
+            'consultation',
             'patient',
-            'doctor_name',
-            'doctor_details',
+            'patient_id',
             'type',
-            'createdAt',
             'etat',
-            'priorite'
+            'priorite',
+            'doctor_details',
+            'createdAt',
+            'health_metrics',  
+            'nss'
         ]
 
-    def get_patient(self, obj):
-        return {
-            'nom': obj.consultation.dossier.patient.nom,
-            'prenom': obj.consultation.dossier.patient.prenom,
-            'NSS': obj.consultation.dossier.patient.NSS
-        }
+    def get_health_metrics(self, obj):
+        if obj.etat == 'termine':
+            # Assuming each 'termine' exam has at most one ResultatLabo
+            try:
+                resultat_labo = obj.resultatlabo_set.first()
+                if resultat_labo:
+                    return HealthMetricsSerializer(resultat_labo.healthmetrics_set.all(), many=True).data
+            except ResultatLabo.DoesNotExist:
+                return []
+        return []  # Return empty list if not 'termine'
 
-class HealthMetricCreateSerializer(serializers.ModelSerializer):
+
+
+class HealthMetricsCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthMetrics
         fields = ['metric_type', 'value', 'unit']
 
-class ResultatLaboCreateUpdateSerializer(serializers.ModelSerializer):
-    health_metrics = HealthMetricCreateSerializer(many=True, required=False)
+class ResultatLaboCreateSerializer(serializers.ModelSerializer):
+    health_metrics = HealthMetricsCreateSerializer(many=True)
 
     class Meta:
         model = ResultatLabo
-        fields = ['resultat', 'dateAnalyse', 'status', 'health_metrics']
+        fields = ['examen', 'resultat', 'status', 'health_metrics']
 
     def create(self, validated_data):
-        health_metrics_data = validated_data.pop('health_metrics', [])
-        resultat_labo = ResultatLabo.objects.create(**validated_data)
+        health_metrics_data = validated_data.pop('health_metrics')
+        laboratin = self.context.get('laboratin')
+        if not laboratin:
+            raise serializers.ValidationError("Laborantin context is required.")
 
+        resultat_labo = ResultatLabo.objects.create(
+            laboratin=laboratin,
+            dateAnalyse=timezone.now(),
+            **validated_data
+        )
         for metric_data in health_metrics_data:
-            HealthMetrics.objects.create(
-                resLabo=resultat_labo,
-                medical_record_id=resultat_labo.examen.consultation.dossier.dossierID,
-                recorded_by=resultat_labo.laboratin.user.id,
-                **metric_data
-            )
-
+            HealthMetrics.objects.create(resLabo=resultat_labo, **metric_data)
         return resultat_labo
 
-class LaborantinStatisticsSerializer(serializers.ModelSerializer):
-    total_tests = serializers.IntegerField(read_only=True)
-    tests_by_status = serializers.DictField(read_only=True)
-    tests_by_priority = serializers.DictField(read_only=True)
-    average_processing_time = serializers.DurationField(read_only=True)
+
+class ResultatLaboHistorySerializer(serializers.ModelSerializer):
+    health_metrics = HealthMetricsSerializer(many=True, read_only=True,source='healthmetrics_set')
+    examenID = serializers.UUIDField(source='examen.examenID', read_only=True)
+    examen_type = serializers.CharField(source='examen.get_type_display', read_only=True)
+    dateAnalyse = serializers.DateTimeField()
 
     class Meta:
-        model = Laboratin
+        model = ResultatLabo
         fields = [
-            'nombreTests',
-            'total_tests',
-            'tests_by_status',
-            'tests_by_priority',
-            'average_processing_time'
+            'resLaboID',
+            'examenID',
+            'examen_type',
+            'resultat',
+            'dateAnalyse',
+            'status',
+            'health_metrics'
         ]
 
-class PatientLabHistorySerializer(serializers.ModelSerializer):
-    patient_info = PatientsSerializer(source='consultation.dossier.patient', read_only=True)
-    results = ResultatLaboSerializer(source='resultatlabo_set', many=True, read_only=True)
+class LabResultHistorySerializer(serializers.ModelSerializer):
+    health_metrics = HealthMetricsSerializer(many=True, read_only=True)
+    examenID = serializers.CharField(source='examen.examenID', read_only=True)
+    examen_type = serializers.CharField(source='examen.get_type_display', read_only=True)
+    dateAnalyse = serializers.DateTimeField()
 
     class Meta:
-        model = Examen
+        model = ResultatLabo
         fields = [
+            'resLaboID',
             'examenID',
-            'patient_info',
-            'type',
-            'doctor_details',
-            'createdAt',
-            'etat',
-            'priorite',
-            'results'
+            'examen_type',
+            'resultat',
+            'dateAnalyse',
+            'status',
+            'health_metrics'
         ]

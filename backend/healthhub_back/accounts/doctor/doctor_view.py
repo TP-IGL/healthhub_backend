@@ -19,7 +19,7 @@ from .doctor_serializers import (
     PrescriptionCreateSerializer,
 )
 
-
+from django.db.models import F
 class IsMedecin(permissions.BasePermission):
     """
     Custom permission to only allow doctors to access the view.
@@ -206,10 +206,17 @@ class ExaminationCreateView(generics.CreateAPIView):
         print(self.request.user)
         if consultation.dossier.patient.centreHospitalier != self.request.user.centreHospitalier:
             raise PermissionDenied("Not authorized for this hospital's patients")
-        serializer.save(
+        examen =serializer.save(
             consultation=consultation,
             etat='planifie'
         )
+        if examen.type == 'labo' and examen.laborantin:
+            Laboratin.objects.filter(user_id=examen.laborantin.user.id).update(nombreTests=F('nombreTests') + 1)
+            print(f"Laborantin {examen.laborantin} nombreTests incremented to {examen.laborantin.nombreTests + 1}")
+
+        elif examen.type == 'radio' and examen.radiologue:
+            Radiologue.objects.filter(user_id=examen.radiologue.user.id).update(nombreTests=F('nombreTests') + 1)
+            print(f"Radiologue {examen.radiologue} nombreTests incremented to {examen.radiologue.nombreTests + 1}")
 
 class RadiologueListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsMedecin]

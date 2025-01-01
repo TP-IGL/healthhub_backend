@@ -291,7 +291,7 @@ class HealthMetrics(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    medical_record_id = models.IntegerField()
+    medical_record_id = models.IntegerField(default=0)
     metric_type = models.CharField(max_length=30, choices=METRIC_TYPE_CHOICES)
     value = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)

@@ -20,18 +20,30 @@ class IsInfermier(permissions.BasePermission):
         return (
             request.user and 
             request.user.is_authenticated and 
-            (request.user.role == 'infermier' or request.user.role == 'Infermier' or request.user.role == 'admin' ) 
+            (request.user.role == 'infermier' or request.user.role == 'Infermier') 
         )
     
 
 class ActiviteFilter(filters.FilterSet):
     # Add filters for activity type and status
-    status = filters.ChoiceFilter(choices=ActiviteInfermier.STATUS_CHOICES)
+    status = filters.ChoiceFilter(choices=[
+        ('planifie', 'Planifié'),
+        ('en_cours', 'En Cours'),
+    ])
     type_activite = filters.ChoiceFilter(choices=ActiviteInfermier.TYPE_ACTIVITE_CHOICES)
 
     class Meta:
         model = ActiviteInfermier
         fields = ['status', 'type_activite']
+
+
+class HistoryActiviteFilter(filters.FilterSet):
+    # Add filters for activity type
+    type_activite = filters.ChoiceFilter(choices=ActiviteInfermier.TYPE_ACTIVITE_CHOICES)
+
+    class Meta:
+        model = ActiviteInfermier
+        fields = ['type_activite']
 
 
 class NurseActiviteListView(generics.ListAPIView):
@@ -95,7 +107,7 @@ class NurseActiviteListView(generics.ListAPIView):
 
             serialized_data = NurseActivityDetailSerializer({
                 "patient": patient,
-                "activities": [activity],  # Here we include the current activity
+                "activities": [activity],
                 "consultation": consultation,
             }).data
 
@@ -163,15 +175,30 @@ class HistoriqueActivitesView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsInfermier]
     serializer_class = ActivitySerializer
 
+    filter_backends = [filters.DjangoFilterBackend, SearchFilter]
+    filterset_class = HistoryActiviteFilter
+
     def get_queryset(self):
         # Get nurse's activities
         infermier = self.request.user.infermier
-        return ActiviteInfermier.objects.filter(
+        queryset = ActiviteInfermier.objects.filter(
             infermier=infermier,
             status="termine"
         ).select_related(
             'consultation__dossier__patient'
         ).distinct()
+
+        if self.request.GET.get('type_activite'):
+            type_activite = self.request.GET.get('type_activite')
+            queryset = queryset.filter(typeActivite=type_activite)
+
+        if self.request.GET.get('search'):
+            search_query = self.request.GET.get('search')
+            queryset = queryset.filter(
+                Q(consultation__dossier__patient__nom__icontains=search_query) |
+                Q(consultation__dossier__patient__prenom__icontains=search_query) |
+                Q(consultation__dossier__patient__NSS__icontains=search_query)
+            ).distinct()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -184,8 +211,6 @@ class HistoriqueActivitesView(generics.ListAPIView):
 
         # Prepare data for serialization
         data = []
-        
-    
         for activity in queryset:
             # Get related consultation and patient details
                 consultation = activity.consultation
@@ -193,7 +218,7 @@ class HistoriqueActivitesView(generics.ListAPIView):
 
                 serialized_data = NurseActivityDetailSerializer({
                     "patient": patient,
-                    "activities": [activity],  # Here we include the current activity
+                    "activities": [activity],  
                     "consultation": consultation,
                 }).data
 
@@ -203,27 +228,3 @@ class HistoriqueActivitesView(generics.ListAPIView):
     
 
 
-class ActiviteDetailView(generics.RetrieveAPIView):
-    """
-    Allows the nurse to view a specific activity.
-    """
-    permission_classes = [permissions.IsAuthenticated, IsInfermier]
-    serializer_class = ValidateActiviteSerializer
-
-    def get_queryset(self):
-        # Get nurse's activities
-        infermier = self.request.user.infermier
-        return ActiviteInfermier.objects.filter(
-            infermier=infermier
-        ).select_related(
-            'consultation__dossier__patient'
-        ).distinct()
-
-    def get_object(self):
-        activiteinfermier_id = self.kwargs.get('activiteinfermier_id')
-        return get_object_or_404(self.get_queryset(), id=activiteinfermier_id)
-    
-    def get(self, request, *args, **kwargs):
-        activity = self.get_object()
-        serializer = self.get_serializer(activity)
-        return Response(serializer.data, status=status.HTTP_200_OK)

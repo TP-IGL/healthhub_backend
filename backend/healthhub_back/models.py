@@ -264,31 +264,6 @@ class ActiviteInfermier(models.Model):
     def __str__(self):
         return f"Activité {self.typeActivite} pour {self.infermier}"
 
-# NurseMedication Model
-# class NurseMedication(models.Model):
-#     STATUS_CHOICES = [
-#         ('planifie', 'Planifiée'),
-#         ('administre', 'Administrée'),
-#         ('reporte', 'Reportée'),
-#         ('annule', 'Annulée'),
-#     ]
-
-#     DOSAGE_CHOICES = [
-#         ('faible', 'Faible'),
-#         ('moyen', 'Moyen'),
-#         ('fort', 'Fort'),
-#     ]
-
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     nurseActivite = models.ForeignKey(ActiviteInfermier, on_delete=models.CASCADE)
-#     ordonnance = models.ForeignKey(Ordonnance, on_delete=models.CASCADE)
-#     administeredAt = models.DateTimeField(null=True, blank=True)
-#     # dosage = models.CharField(max_length=10, choices=DOSAGE_CHOICES)
-#     notes = models.TextField(blank=True, null=True)
-#     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-
-#     def __str__(self):
-#         return f"Médicament {self.ordonnance} administré par {self.nurseActivite.infermier}"
 
 
 # ResultatLabo Model
@@ -361,18 +336,12 @@ class Examen(models.Model):
     priorite = models.CharField(max_length=20, choices=PRIORITE_CHOICES)
 
     def __str__(self):
-        return f"Examen {self.type} pour {self.patient}"
+        return f"Examen {self.type} pour"
 
 # Radiologue Model (Already Defined Earlier)
 
 # ResultatRadio Model
 class ResultatRadio(models.Model):
-    # STATUS_CHOICES = [
-    #     ('en_cours', 'En Cours'),
-    #     ('termine', 'Terminé'),
-    #     ('valide', 'Validé'),
-    # ]
-
     RESRADIO_TYPE_CHOICES = [
         ('radiographie', 'Radiographie'),
         ('echographie', 'Échographie'),
@@ -381,13 +350,11 @@ class ResultatRadio(models.Model):
     ]
 
     resRadioID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    # radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
     examen = models.ForeignKey(Examen, on_delete=models.CASCADE)
-    radioImgURL = models.URLField(max_length=500, blank=True, null=True)
+    radioImgURL = models.TextField(blank=True, null=True)
     type = models.CharField(max_length=20, choices=RESRADIO_TYPE_CHOICES)
     rapport = models.TextField()
     dateRealisation = models.DateTimeField(auto_now_add=True)
-    # status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
         return f"Résultat Radio {self.resRadioID} - {self.status}"

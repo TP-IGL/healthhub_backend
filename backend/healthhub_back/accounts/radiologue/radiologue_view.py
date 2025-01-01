@@ -1,15 +1,18 @@
 from django.shortcuts import get_object_or_404
+from django.db.models import Q, Prefetch
+from django_filters import rest_framework as filters
 from rest_framework import generics, permissions, status
+from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.filters import SearchFilter
+
 from healthhub_back.models import ResultatRadio, Examen
 from .radiologue_serializers import RadiologueExamenDetailSerializer, ResultatRadioSerializer
-from rest_framework.views import APIView
+from .radiologue_service import upload_image
 
-from django_filters import rest_framework as filters
-from rest_framework.filters import SearchFilter, OrderingFilter
 
-from django.db.models import Q
 
+############################################################################################################################################################################
 
 
 class IsRadiologue(permissions.BasePermission):
@@ -20,11 +23,15 @@ class IsRadiologue(permissions.BasePermission):
         return (
             request.user and 
             request.user.is_authenticated and 
-            (request.user.role == 'radiologue' or request.user.role == 'Radiologue' or request.user.role == 'admin' ) 
+            (request.user.role == 'radiologue' or request.user.role == 'Radiologue') 
         )
     
-class RadiologueFilter(filters.FilterSet):
-    status = filters.ChoiceFilter(choices=Examen.ETAT_CHOICES)
+class ExamenFilter(filters.FilterSet):
+    status = filters.ChoiceFilter(choices=[
+        ('planifie', 'Planifié'),
+        ('en_cours', 'En Cours'),
+        ('annule', 'Annulé'),
+    ])
     type_radio = filters.ChoiceFilter(choices=ResultatRadio.RESRADIO_TYPE_CHOICES)
 
     class Meta:
@@ -38,6 +45,17 @@ class RadiologueFilter(filters.FilterSet):
         resultat_radio_filter = ResultatRadio.objects.filter(type_radio=self.data.get('type_radio', None))
         combined_query = queryset & examen_filter & resultat_radio_filter
         return combined_query
+    
+
+class HistoryExamenFilter(filters.FilterSet):
+    type_radio = filters.ChoiceFilter(choices=ResultatRadio.RESRADIO_TYPE_CHOICES)
+
+    class Meta:
+        model = Examen
+        fields = ['type_radio']
+
+
+############################################################################################################################################################################
 
 class RadiologueExamenListView(generics.ListAPIView):
     """
@@ -48,7 +66,7 @@ class RadiologueExamenListView(generics.ListAPIView):
     serializer_class = RadiologueExamenDetailSerializer
 
     filter_backends = [filters.DjangoFilterBackend, SearchFilter]
-    filterset_class = RadiologueFilter
+    filterset_class = ExamenFilter
 
     def get_queryset(self):
         """
@@ -57,9 +75,11 @@ class RadiologueExamenListView(generics.ListAPIView):
         # Get nurse's activities that are associated with this nurse
         radiologue = self.request.user.radiologue
         queryset = Examen.objects.filter(
-            radiologue=radiologue,
+            radiologue=radiologue
         ).select_related(
             'consultation__dossier__patient'
+        ).prefetch_related(
+            Prefetch('resultatradio_set', queryset=ResultatRadio.objects.all())
         ).distinct()
 
 
@@ -81,7 +101,7 @@ class RadiologueExamenListView(generics.ListAPIView):
 
         return queryset
     
-    def list (self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
 
         if not queryset.exists():
@@ -91,48 +111,22 @@ class RadiologueExamenListView(generics.ListAPIView):
             )
         
         data = []
+        
         for examen in queryset:
             consultation = examen.consultation
             patient = consultation.dossier.patient
 
+            # Serialize multiple ResultatRadio objects if they exist
             serialized_data = RadiologueExamenDetailSerializer({
                 'patient': patient,
                 'examen': examen,
-                'resultatRadio': examen.resultatRadio if hasattr(examen, 'resultatRadio') else None,
+                'resultatRadio': examen.resultatradio_set.all() , 
                 'consultation': consultation,
             }).data
 
             data.append(serialized_data)
 
         return Response(data, status=status.HTTP_200_OK)
-    
-
-class ExamenDetailView(generics.RetrieveAPIView):
-    """
-    Allows the nurse to view details of a specific activity.
-    """
-    permission_classes = [permissions.IsAuthenticated, IsRadiologue]
-    serializer_class = RadiologueExamenDetailSerializer
-
-    def get_queryset(self):
-        radiologue = self.request.user.radiologue
-        queryset = Examen.objects.filter(
-            radiologue=radiologue,
-        ).select_related(
-            'consultation__dossier__patient'
-        ).distinct()
-        return queryset
-
-    def get_object(self):
-        examenID = self.kwargs.get('examen_id')
-        queryset = self.get_queryset()
-        return get_object_or_404(queryset, examenID=examenID)
-         
-    
-    def get(self, request, *args, **kwargs):
-        examen = self.get_object()
-        serializer = self.get_serializer(examen)
-        return Response(serializer.data, status=status.HTTP_200_OK)
     
 
 class StartExamenView(APIView):
@@ -173,13 +167,13 @@ class CreateResultatRadioView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Create the radiology result
-        data = request.data.copy()
-        data['examen'] = examen.examenID
+
+        data = request.data
+        data['radioImgURL'] = upload_image(request.data['radioImgURL'])
+
         serializer = self.get_serializer(data=data)
-        print (serializer)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(examen_id=examen.examenID)
         
         return Response(
             {'message': 'Radiology result created successfully.'},
@@ -216,15 +210,31 @@ class HistoriqueExamenView (generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsRadiologue]
     serializer_class = RadiologueExamenDetailSerializer
 
+    filter_backends = [filters.DjangoFilterBackend, SearchFilter]
+    filterset_class = HistoryExamenFilter
+
     def get_queryset(self):
         # Get nurse's activities
         radiologue = self.request.user.radiologue
-        return Examen.objects.filter(
+        queryset = Examen.objects.filter(
             radiologue=radiologue,
             etat='termine'
         ).select_related(
             'consultation__dossier__patient'
         ).distinct()
+    
+        if self.request.GET.get('type_radio'):
+            type_radio = self.request.GET.get('type_radio')
+            queryset = queryset.filter(resultatradio__type=type_radio)
+
+        if self.request.GET.get('search'):
+            search_query = self.request.GET.get('search')
+            queryset = queryset.filter(
+                Q(consultation__dossier__patient__nom__icontains=search_query) |
+                Q(consultation__dossier__patient__prenom__icontains=search_query) |
+                Q(consultation__dossier__patient__NSS__icontains=search_query)
+            ).distinct()
+
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()

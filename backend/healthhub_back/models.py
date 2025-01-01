@@ -171,7 +171,7 @@ class Consultation(models.Model):
 
     consultationID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     dossier = models.ForeignKey(DossierMedical, on_delete=models.CASCADE)
-    dateConsultation = models.DateTimeField()
+    dateConsultation = models.DateField()
     diagnostic = models.TextField()
     resume = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)

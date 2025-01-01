@@ -202,29 +202,29 @@ class DossierMedicalSerializer(serializers.ModelSerializer):
 
 
 class ConsultationCreateUpdateSerializer(serializers.ModelSerializer):
-    patient_id = serializers.UUIDField(write_only=True)
+    nss = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Consultation
-        fields = ['consultationID', 'patient_id', 'dateConsultation', 
-                 'diagnostic', 'resume', 'status']
+        fields = ['consultationID', 'nss', 'dateConsultation', 
+                  'diagnostic', 'resume', 'status']
         read_only_fields = ['consultationID', 'dateConsultation']  
 
-    def validate_patient_id(self, value):
+    def validate_nss(self, value):
         try:
-            DossierMedical.objects.get(patient__user__id=value)
+            DossierMedical.objects.get(patient__NSS=value)
             return value
         except DossierMedical.DoesNotExist:
             raise serializers.ValidationError("Patient medical file not found")
 
     def create(self, validated_data):
-        patient_id = validated_data.pop('patient_id')
-        dossier = DossierMedical.objects.get(patient__user__id=patient_id)
-        #  set dateConsultation to current time
-        validated_data['dateConsultation'] = timezone.now()
+        nss = validated_data.pop('nss')
+        dossier = DossierMedical.objects.get(patient__NSS=nss)
+        # Set dateConsultation to current time
+        validated_data['dateConsultation'] = timezone.now().date()
         return Consultation.objects.create(dossier=dossier, **validated_data)
-    
 
+    
 
 class ExaminationCreateSerializer(serializers.ModelSerializer):
     radiologue_id = serializers.UUIDField(required=False, write_only=True)

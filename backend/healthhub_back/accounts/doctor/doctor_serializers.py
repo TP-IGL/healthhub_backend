@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from healthhub_back.models import (
+    ActiviteInfermier,
+    Infermier,
     Patient,
     DossierMedical,
     Consultation,
@@ -275,6 +277,12 @@ class LaborantinListSerializer(serializers.ModelSerializer):
         model = Laboratin
         fields = ['user_id', 'name', 'specialite', 'shift', 'nombreTests']
 
+class InfermierListSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='user.username')
+
+    class Meta:
+        model = Infermier
+        fields = ['user_id', 'name', 'shift']
 #### Prescription
 
 
@@ -400,3 +408,9 @@ class PrescriptionCreateSerializer(serializers.Serializer):
                 )
 
             return ordonnance
+        
+
+class ActiviteInfermierCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ActiviteInfermier
+        fields = ['consultation', 'infermier', 'typeActivite', 'doctors_details', 'status']

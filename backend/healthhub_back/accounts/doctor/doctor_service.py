@@ -29,7 +29,7 @@ def search_patient(query):
             dossier = get_object_or_404(DossierMedical, qrCode=query)
             patient = dossier.patient
     return patient
-
+# 
 
 def visualize_medical_record(patient):
     """

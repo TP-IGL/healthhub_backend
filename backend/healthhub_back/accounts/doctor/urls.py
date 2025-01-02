@@ -1,5 +1,5 @@
 from django.urls import path
-from .doctor_view import (ConsultationCreateView, ConsultationDetailView, DoctorPatientListView, PatientSearchView,
+from .doctor_view import (ActiviteInfermierCreateView, ConsultationCreateView, ConsultationDetailView, DoctorPatientListView, InfermierListView, PatientSearchView,
                           ExaminationCreateView, PrescriptionCreateView, RadiologueListView,LaborantinListView, ExaminationDetailView,OrdonnanceCreateView, OrdonnanceDetailView,
                         ConsultationOrdonnanceListView, OrdonnanceUpdateView,
                         MedicamentCreateView, MedicamentListView)
@@ -27,6 +27,8 @@ urlpatterns = [
         ExaminationCreateView.as_view(),
         name='examination-create'
     ),
+    # ActiviteInfermierCreateView
+    ####
     path(
         'hospital/<int:hospital_id>/radiologues/',
         RadiologueListView.as_view(),
@@ -37,6 +39,19 @@ urlpatterns = [
         LaborantinListView.as_view(),
         name='laborantin-list'
     ),
+    # InfermierListView
+    path(
+        'hospital/<int:hospital_id>/infermiers/',
+        InfermierListView.as_view(),
+        name='laborantin-list'
+    ),
+    # now import ActiviteInfermierCreateView
+    path(
+        'infermier/',
+        ActiviteInfermierCreateView.as_view(),
+        name='examination-create'
+    )
+    ,
     path(
         'examinations/<uuid:examenID>/',
         ExaminationDetailView.as_view(),

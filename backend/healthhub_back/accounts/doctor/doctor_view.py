@@ -5,12 +5,14 @@ from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from rest_framework import status
-from healthhub_back.models import Patient, DossierMedical , Consultation , DossierMedical,Consultation,Examen,Radiologue,Laboratin ,    Ordonnance, Consultation, OrdonnanceMedicament, Medicament
+from healthhub_back.models import ActiviteInfermier, Infermier, Patient, DossierMedical , Consultation , DossierMedical,Consultation,Examen,Radiologue,Laboratin ,    Ordonnance, Consultation, OrdonnanceMedicament, Medicament
 from healthhub_back.accounts.patient.patient_serializers import PatientsSerializer, DossierMedicalDetailSerializer, ConsultationsSerializer,ExamensSerializer,OrdonnancesSerializer, MedicamentsSerializer
 from rest_framework import permissions
 from .doctor_serializers import (
+    ActiviteInfermierCreateSerializer,
     ConsultationCreateUpdateSerializer,
-    ExaminationCreateSerializer, 
+    ExaminationCreateSerializer,
+    InfermierListSerializer, 
     RadiologueListSerializer,
     LaborantinListSerializer,
     OrdonnanceCreateSerializer,
@@ -238,6 +240,16 @@ class LaborantinListView(generics.ListAPIView):
             user__centreHospitalier_id=hospital_id
         ).select_related('user')
 
+class InfermierListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsMedecin]
+    serializer_class = InfermierListSerializer
+
+    def get_queryset(self):
+        hospital_id = self.kwargs['hospital_id']
+        return Infermier.objects.filter(
+            user__centreHospitalier_id=hospital_id
+        ).select_related('user')
+
 class ExaminationDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated, IsMedecin]
     serializer_class = ExamensSerializer
@@ -400,3 +412,9 @@ class PrescriptionCreateView(generics.CreateAPIView):
             ordonnance_serializer.data,
             status=status.HTTP_201_CREATED
         )
+    
+
+class ActiviteInfermierCreateView(generics.CreateAPIView):
+    queryset = ActiviteInfermier.objects.all()
+    serializer_class = ActiviteInfermierCreateSerializer
+    permission_classes = [IsAuthenticated]

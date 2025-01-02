@@ -144,7 +144,7 @@ class Patient(models.Model):
     mutuelle = models.CharField(max_length=255)
     contactUrgence = models.CharField(max_length=255)
     medecin = models.ForeignKey(Medecin, on_delete=models.SET_NULL, null=True)
-    createdAt = models.DateTimeField(auto_now_add=True)
+    createdAt = models.DateField(auto_now_add=True)
     centreHospitalier = models.ForeignKey(CentreHospitalier, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -154,7 +154,7 @@ class Patient(models.Model):
 class DossierMedical(models.Model):
     dossierID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.OneToOneField(Patient, on_delete=models.CASCADE)
-    createdAt = models.DateTimeField(auto_now_add=True)
+    createdAt = models.DateField(auto_now_add=True)
     active = models.BooleanField(default=True)
     qrCode = models.CharField(max_length=10000)
 
@@ -184,8 +184,8 @@ class Ordonnance(models.Model):
     ordonnanceID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
     valide = models.BooleanField(default=True)
-    dateCreation = models.DateTimeField(auto_now_add=True)
-    dateExpiration = models.DateTimeField(null=True, blank=True)
+    dateCreation = models.DateField(auto_now_add=True)
+    dateExpiration = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"Ordonnance {self.ordonnanceID}"
@@ -254,7 +254,7 @@ class ActiviteInfermier(models.Model):
     doctors_details = models.TextField()
     nurse_observations = models.TextField()
     # details = models.TextField()
-    createdAt = models.DateTimeField(auto_now_add=True)
+    createdAt = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
@@ -274,7 +274,7 @@ class ResultatLabo(models.Model):
     examen = models.ForeignKey('Examen', on_delete=models.CASCADE)
     laboratin = models.ForeignKey(Laboratin, on_delete=models.CASCADE)
     resultat = models.TextField()
-    dateAnalyse = models.DateTimeField()
+    dateAnalyse = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
@@ -294,7 +294,7 @@ class HealthMetrics(models.Model):
     metric_type = models.CharField(max_length=30, choices=METRIC_TYPE_CHOICES)
     value = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)
-    measured_at = models.DateTimeField(auto_now_add=True)
+    measured_at = models.DateField(auto_now_add=True)
     recorded_by = models.IntegerField(default=0)
     resLabo = models.ForeignKey(ResultatLabo, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -330,7 +330,7 @@ class Examen(models.Model):
     # patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     doctor_details = models.TextField(blank=True, null=True)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    createdAt = models.DateTimeField(auto_now_add=True)
+    createdAt = models.DateField(auto_now_add=True)
     etat = models.CharField(max_length=20, choices=ETAT_CHOICES)
     priorite = models.CharField(max_length=20, choices=PRIORITE_CHOICES)
 
@@ -355,7 +355,7 @@ class ResultatRadio(models.Model):
     radioImgURL = models.TextField(max_length=500, blank=True, null=True)
     type = models.CharField(max_length=20, choices=RESRADIO_TYPE_CHOICES)
     rapport = models.TextField()
-    dateRealisation = models.DateTimeField(auto_now_add=True)
+    dateRealisation = models.DateField(auto_now_add=True)
     # status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
@@ -380,8 +380,8 @@ class Facture(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     montant = models.FloatField()
     description = models.CharField(max_length=255)
-    createdAt = models.DateTimeField(auto_now_add=True)
-    datePaiement = models.DateTimeField(null=True, blank=True)
+    createdAt = models.DateField(auto_now_add=True)
+    datePaiement = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     methodePaiement = models.CharField(max_length=20, choices=METHOD_PAIEMENT_CHOICES)
     centreHospitalier = models.ForeignKey(CentreHospitalier, on_delete=models.CASCADE)

@@ -2,6 +2,7 @@
 from django.db.models import F
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from healthhub_back.accounts.patient.patient_serializers import ExamensSerializer
 from healthhub_back.models import Examen, ResultatLabo, Laboratin, Patient
 from .laborantin_serializers import (
     ExamRequiredSerializer, ResultatLaboCreateSerializer, LabResultHistorySerializer, ResultatLaboHistorySerializer
@@ -101,3 +102,24 @@ class LabResultHistoryView(generics.ListAPIView):
             'healthmetrics_set'  # Updated to use default reverse relationship
         ).order_by('-dateAnalyse')
         return history
+    
+
+class ExaminationDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated, IsLaborantin]
+    serializer_class = ExamensSerializer
+    lookup_field = 'examenID'
+
+    def get_queryset(self):
+        return Examen.objects.select_related(
+            'consultation__dossier__patient__medecin__user',
+            'consultation__dossier__patient__centreHospitalier'
+        ).prefetch_related(
+            'resultatlabo_set__healthmetrics_set',
+            'resultatradio_set'
+        )
+
+    def get_object(self):
+        obj = super().get_object()
+        if obj.consultation.dossier.patient.centreHospitalier != self.request.user.centreHospitalier:
+            raise PermissionDenied("Not authorized for this hospital's examinations")
+        return obj

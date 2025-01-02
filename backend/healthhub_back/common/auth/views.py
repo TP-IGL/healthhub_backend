@@ -43,7 +43,7 @@ class LoginView(generics.GenericAPIView):
             'first_name': user.first_name,
             'last_name': user.last_name,
             'role': user.role,
-            'centre_hospitalier': user.centreHospitalier.nom if user.centreHospitalier else None
+            'centre_hospitalier_id': user.centreHospitalier.id if user.centreHospitalier else None
         }
 
         # Return token along with user data

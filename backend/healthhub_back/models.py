@@ -352,7 +352,7 @@ class ResultatRadio(models.Model):
     resRadioID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
     examen = models.ForeignKey(Examen, on_delete=models.CASCADE)
-    radioImgURL = models.URLField(max_length=500, blank=True, null=True)
+    radioImgURL = models.TextField(max_length=500, blank=True, null=True)
     type = models.CharField(max_length=20, choices=RESRADIO_TYPE_CHOICES)
     rapport = models.TextField()
     dateRealisation = models.DateTimeField(auto_now_add=True)

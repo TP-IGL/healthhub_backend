@@ -6,6 +6,7 @@ from healthhub_back.models import (
     ResultatRadio,
 )
 
+############################################################################################################################################################################
 
 
 class PatientSummarySerializer(serializers.ModelSerializer):
@@ -41,7 +42,7 @@ class ResultatRadioSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = ResultatRadio
-        fields = ['resRadioID','radioImgURL', 'type', 'rapport', 'examen']
+        fields = ('resRadioID','radioImgURL', 'type', 'rapport')
         read_only_fields = ['resRadioID']
 
 
@@ -52,13 +53,13 @@ class RadiologueExamenDetailSerializer(serializers.Serializer):
     patient = PatientSummarySerializer()
     consultation = RadiologueConsultationSummarySerializer()
     examen = RadiologueExamenSummarySerializer()
-    resultatRadio = ResultatRadioSerializer()
+    resultatRadio = ResultatRadioSerializer(many=True)  # Updated to support multiple results
 
     def to_representation(self, instance):
         """
         Customize how data is serialized by including all relevant fields.
         """
-        resultat_radio = instance.get('resultatRadio')
+        resultat_radio = instance.get('resultatRadio', [])
         examen = instance.get('examen')
         consultation = instance.get('consultation')
         patient = instance.get('patient')
@@ -66,6 +67,6 @@ class RadiologueExamenDetailSerializer(serializers.Serializer):
         return {
             'patient': PatientSummarySerializer(patient).data,
             'examen': RadiologueExamenSummarySerializer(examen).data,
-            'resultatRadio': ResultatRadioSerializer(resultat_radio).data if resultat_radio else {},
+            'resultatRadio': ResultatRadioSerializer(resultat_radio, many=True).data if resultat_radio else [],
             'consultation': RadiologueConsultationSummarySerializer(consultation).data,
         }

@@ -117,4 +117,3 @@ class NurseActivityDetailSerializer(serializers.Serializer):
 
 
 
-

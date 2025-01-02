@@ -262,14 +262,14 @@ class ExaminationCreateSerializer(serializers.ModelSerializer):
         return data
 
 class RadiologueListSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source='user.get_full_name')
+    name = serializers.CharField(source='user.username')
 
     class Meta:
         model = Radiologue
         fields = ['user_id', 'name', 'specialite', 'shift', 'nombreTests']
 
 class LaborantinListSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source='user.get_full_name')
+    name = serializers.CharField(source='user.username')
 
     class Meta:
         model = Laboratin

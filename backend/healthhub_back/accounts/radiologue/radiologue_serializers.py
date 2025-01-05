@@ -33,7 +33,7 @@ class RadiologueExamenSummarySerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Examen
-        fields = ['examenID', 'type', 'doctor_details', 'createdAt']
+        fields = ['examenID', 'type', 'doctor_details', 'etat', 'createdAt']
 
 
 class ResultatRadioSerializer(serializers.ModelSerializer):

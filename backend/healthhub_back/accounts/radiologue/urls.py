@@ -1,5 +1,6 @@
 from django.urls import path
 from .radiologue_view import (
+    ExamenRadiologue,
     RadiologueExamenListView,
     StartExamenView,
     CreateResultatRadioView,
@@ -8,6 +9,7 @@ from .radiologue_view import (
 )
 
 urlpatterns = [
+    path('',ExamenRadiologue.as_view(), name='acceuil_radiologue'), 
     path('examens/', RadiologueExamenListView.as_view(), name='examens_list'), 
     path('examens/<uuid:examen_id>/start/', StartExamenView.as_view(), name='start_examens'), 
     path('examens/<uuid:examen_id>/create-resultat-radio/', CreateResultatRadioView.as_view(), name='create_resultat_radio'),

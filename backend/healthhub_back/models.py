@@ -328,7 +328,6 @@ class Examen(models.Model):
     examenID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
     radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
-    # patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     doctor_details = models.TextField(blank=True, null=True)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     createdAt = models.DateTimeField(auto_now_add=True)

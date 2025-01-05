@@ -56,6 +56,43 @@ class HistoryExamenFilter(filters.FilterSet):
 
 
 ############################################################################################################################################################################
+class ExamenRadiologue(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsRadiologue]
+    # get number of uploaded images , number of exams done , number of exams in progress, repartition of radio types %
+    def get(self, request):
+        radiologue = request.user.radiologue
+        examens = Examen.objects.filter(radiologue=radiologue)
+        examens_done = examens.filter(etat='termine').count()
+        examens_in_progress = examens.filter(etat='en_cours').count()
+        examens_planned = examens.filter(etat='planifie').count()
+        examens_cancelled = examens.filter(etat='annule').count()
+        examens_total = examens.count()
+
+        # get number of uploaded images
+        uploaded_images = 0
+        for examen in examens:
+            uploaded_images += examen.resultatradio_set.count()
+
+        # get repartition of radio types
+        radio_types = ResultatRadio.RESRADIO_TYPE_CHOICES
+        radio_types_count = {}
+        for radio_type in radio_types:
+            radio_types_count[radio_type[1]] = examens.filter(resultatradio__type=radio_type[0]).count()
+
+        data = {
+            'examens_total': examens_total,
+            'examens_done': examens_done,
+            'examens_demands': examens_in_progress + examens_planned,
+            # 'examens_in_progress': examens_in_progress,
+            # 'examens_planned': examens_planned,
+            # 'examens_cancelled': examens_cancelled,
+            'uploaded_images': uploaded_images,
+            'radio_types_count': radio_types_count,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
 
 class RadiologueExamenListView(generics.ListAPIView):
     """

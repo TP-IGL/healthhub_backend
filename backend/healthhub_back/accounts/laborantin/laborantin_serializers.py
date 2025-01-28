@@ -84,7 +84,7 @@ class ResultatLaboHistorySerializer(serializers.ModelSerializer):
     health_metrics = HealthMetricsSerializer(many=True, read_only=True,source='healthmetrics_set')
     examenID = serializers.UUIDField(source='examen.examenID', read_only=True)
     examen_type = serializers.CharField(source='examen.get_type_display', read_only=True)
-    dateAnalyse = serializers.DateTimeField()
+    dateAnalyse = serializers.DateField()
 
     class Meta:
         model = ResultatLabo
@@ -102,7 +102,7 @@ class LabResultHistorySerializer(serializers.ModelSerializer):
     health_metrics = HealthMetricsSerializer(many=True, read_only=True)
     examenID = serializers.CharField(source='examen.examenID', read_only=True)
     examen_type = serializers.CharField(source='examen.get_type_display', read_only=True)
-    dateAnalyse = serializers.DateTimeField()
+    dateAnalyse = serializers.DateField()
 
     class Meta:
         model = ResultatLabo

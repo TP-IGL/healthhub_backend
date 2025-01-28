@@ -169,6 +169,7 @@ class CreateResultatRadioView(generics.CreateAPIView):
         
 
         data = request.data
+        print(data["radioImgURL"])
         data['radioImgURL'] = upload_image(request.data['radioImgURL'])
 
         serializer = self.get_serializer(data=data)

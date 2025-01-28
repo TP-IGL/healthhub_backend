@@ -68,21 +68,7 @@ class Infermier(models.Model):
     def __str__(self):
         return f"Infirmier {self.user.first_name} {self.user.last_name}"
 
-# PharmacienHospitalier Profile Model
-class PharmacienHospitalier(models.Model):
-    SHIFT_CHOICES = [
-        ('jour', 'Jour'),
-        ('nuit', 'Nuit'),
-        ('rotation', 'Rotation'),
-    ]
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
-    shift = models.CharField(max_length=20, choices=SHIFT_CHOICES)
-    telephone = models.CharField(max_length=20)
-    # Add any additional fields specific to PharmacienHospitalier
-
-    def __str__(self):
-        return f"Pharmacien {self.user.first_name} {self.user.last_name}"
 
 # Laborantin Profile Model
 class Laboratin(models.Model):
@@ -183,7 +169,7 @@ class Consultation(models.Model):
 class Ordonnance(models.Model):
     ordonnanceID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
-    valide = models.BooleanField(default=True)
+    valide = models.BooleanField(default=False)
     dateCreation = models.DateField(auto_now_add=True)
     dateExpiration = models.DateField(null=True, blank=True)
 
@@ -352,7 +338,7 @@ class ResultatRadio(models.Model):
     resRadioID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
     examen = models.ForeignKey(Examen, on_delete=models.CASCADE)
-    radioImgURL = models.TextField(max_length=500, blank=True, null=True)
+    radioImgURL = models.TextField(blank=True, null=True)
     type = models.CharField(max_length=20, choices=RESRADIO_TYPE_CHOICES)
     rapport = models.TextField()
     dateRealisation = models.DateField(auto_now_add=True)
@@ -361,30 +347,5 @@ class ResultatRadio(models.Model):
     def __str__(self):
         return f"Résultat Radio {self.resRadioID} - {self.examen.etat}"
 
-# Facture Model
-class Facture(models.Model):
-    STATUS_CHOICES = [
-        ('en_attente', 'En Attente'),
-        ('paye', 'Payée'),
-        ('annule', 'Annulée'),
-    ]
 
-    METHOD_PAIEMENT_CHOICES = [
-        ('carte', 'Carte'),
-        ('especes', 'Espèces'),
-        ('cheque', 'Chèque'),
-        ('autre', 'Autre'),
-    ]
-
-    factureID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
-    montant = models.FloatField()
-    description = models.CharField(max_length=255)
-    createdAt = models.DateField(auto_now_add=True)
-    datePaiement = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-    methodePaiement = models.CharField(max_length=20, choices=METHOD_PAIEMENT_CHOICES)
-    centreHospitalier = models.ForeignKey(CentreHospitalier, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"Facture {self.factureID} - {self.status}"
+    

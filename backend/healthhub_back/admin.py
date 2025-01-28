@@ -6,7 +6,6 @@ from .models import (
     User,
     Medecin,
     Infermier,
-    PharmacienHospitalier,
     Laboratin,
     Radiologue,
     CentreHospitalier,
@@ -22,10 +21,13 @@ from .models import (
     HealthMetrics,
     Examen,
     ResultatRadio,
-    Facture
 )
 
-# Custom User Admin
+from rest_framework_api_key.models import APIKey
+
+
+
+
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
     fieldsets = DjangoUserAdmin.fieldsets + (
@@ -39,7 +41,6 @@ class UserAdmin(DjangoUserAdmin):
 # Register Profile Models
 admin.site.register(Medecin)
 admin.site.register(Infermier)
-admin.site.register(PharmacienHospitalier)
 admin.site.register(Laboratin)
 admin.site.register(Radiologue)
 
@@ -57,4 +58,3 @@ admin.site.register(ResultatLabo)
 admin.site.register(HealthMetrics)
 admin.site.register(Examen)
 admin.site.register(ResultatRadio)
-admin.site.register(Facture)

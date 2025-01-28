@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'healthhub_back.accounts.admin_management',
-    'drf_yasg'
+    'drf_yasg',
+    'corsheaders',
+    'rest_framework_api_key',
 ]
 
 MIDDLEWARE = [
@@ -54,6 +56,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = "backend.urls"
@@ -157,6 +160,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "http://localhost:4200"
 ]
 
 SWAGGER_SETTINGS = {
@@ -172,3 +176,5 @@ SWAGGER_SETTINGS = {
 
 
 LOGIN_URL = '/auth/login/'  
+
+CORS_ALLOW_ALL_ORIGINS = True

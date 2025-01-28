@@ -1,5 +1,3 @@
-# accounts/admin_management/views.py
-
 from rest_framework import generics, permissions, viewsets, status
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
